@@ -11,8 +11,12 @@ published: 2026-05-21T08:05:07+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260521080507
 upload: false
-Last Modified: 2026-05-21 08:05:01
+Last Modified: 2026-05-24 08:05:58
 ---
+Xray NOKEY
+```
+curl -fsSL -o /usr/local/bin/nokey https://raw.githubusercontent.com/livingfree2023/nokey/refs/heads/main/nokey.sh && chmod +x /usr/local/bin/nokey && nokey
+```
 
 Install SB
 ```
