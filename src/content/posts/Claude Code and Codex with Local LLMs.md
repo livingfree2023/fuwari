@@ -1,0 +1,620 @@
+---
+title: Claude Code and Codex with Local LLMs
+category: Blog
+tags:
+  - ClaudeCode
+  - Codex
+  - LLM
+published: 2026-05-25T17:05:57+08:00
+image: https://image.heavenroad.org/default_cover.webp
+slug: slug20260525170557
+upload: false
+Last Modified: 2026-05-25 17:05:69
+---
+URL: https://github.com/pchalasani/claude-code-tools/blob/main/docs/local-llm-setup.md#using-codex-cli-with-local-llms
+
+This guide covers running **Claude Code** and **OpenAI Codex CLI** with local
+models using [llama.cpp](https://github.com/ggml-org/llama.cpp)'s server:
+
+- **Claude Code** uses the Anthropic-compatible `/v1/messages` endpoint
+- **Codex CLI** uses the OpenAI-compatible `/v1/chat/completions` endpoint
+
+## Table of Contents
+
+- [When to Use Local Models](#when-to-use-local-models)
+- [How It Works](#how-it-works)
+- [Prerequisites](#prerequisites)
+- [Shell Function for Claude Code](#shell-function-for-claude-code)
+- [Model Commands](#model-commands)
+- [Quick Reference](#quick-reference)
+- [Usage](#usage)
+- [Troubleshooting](#troubleshooting)
+- [Using Codex CLI with Local LLMs](#using-codex-cli-with-local-llms)
+
+## When to Use Local Models
+
+These local models (20B-80B parameters) aren't suited for complex coding tasks
+where frontier models excel, but they're useful for non-coding tasks like
+summarization, answering questions about your private notes, working with
+sensitive documents that can't be sent to external APIs, or high-volume tasks
+where API costs would add up.
+
+## How It Works
+
+1. **Start llama-server** with a model (see [Model Commands](#model-commands)
+   below) - this makes the model available at a local endpoint (e.g., port 8123)
+2. **Run Claude Code** pointing to that endpoint using the `cclocal` helper
+   function
+
+## Prerequisites
+
+- [llama.cpp](https://github.com/ggml-org/llama.cpp) built and `llama-server`
+  available in your PATH
+- Sufficient RAM (64GB+ recommended for 30B+ models)
+- Models will be downloaded automatically from HuggingFace on first run
+
+## Shell Function for Claude Code
+
+At its simplest, connecting Claude Code to a local model is just one line:
+
+```bash
+ANTHROPIC_BASE_URL=http://127.0.0.1:8123 claude
+```
+
+The helper function below is just a convenience wrapper for this. Add it to your
+`~/.zshrc` or `~/.bashrc`:
+
+```bash
+cclocal() {
+    local port=8123
+    if [[ "$1" =~ ^[0-9]+$ ]]; then
+        port="$1"
+        shift
+    fi
+    (
+        export ANTHROPIC_BASE_URL="http://127.0.0.1:${port}"
+        claude "$@"
+    )
+}
+```
+
+Usage:
+
+```bash
+cclocal              # Connect to localhost:8123
+cclocal 8124         # Connect to localhost:8124
+cclocal 8124 --resume abc123  # With additional claude args
+```
+
+> [!IMPORTANT]
+> Add this to your `~/.claude/settings.json` to disable telemetry:
+>
+> ```json
+> {
+>   // ... other settings ...
+>   "env": {
+>     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+>   }
+>   // ... other settings ...
+> }
+> ```
+>
+> Without this, Claude Code sends telemetry requests to your local server,
+> which returns 404s and retries aggressively—causing ephemeral port exhaustion
+> on macOS and system-wide network failures.
+
+## Performance Comparison
+
+Approximate token generation speeds measured inside Claude Code on an M1 Max
+(64 GB), with roughly 30--37K input context tokens (a typical Claude Code
+prompt). All models served via `llama-server`.
+
+| Model | Active Params | tg (tok/s) |
+|-------|--------------|------------|
+| **Gemma-4-26B-A4B** | **4B** | **~40** |
+| **Qwen3.6-35B-A3B** | **3B** | **~35** |
+| GPT-OSS-20B | 3.6B | ~17--38 |
+| Qwen3-30B-A3B | 3B | ~15--27 |
+| GLM-4.7-Flash | 3B | ~12--13 |
+| Qwen3.5-35B-A3B | 3B | ~12 |
+| Qwen3-Next-80B-A3B | 3B | ~3--5 |
+
+tg = token generation (output speed). Models without benchmarks are omitted.
+Speeds vary with prompt length, quantization, and system load.
+
+## Model Commands
+
+### GPT-OSS-20B (Fast, Good Baseline)
+
+Uses the built-in preset with optimized settings:
+
+```bash
+llama-server --gpt-oss-20b-default --port 8123
+```
+
+**Performance:** ~17-38 tok/s generation on M1 Max
+
+### Qwen3-30B-A3B
+
+```bash
+llama-server -hf unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF \
+  --port 8124 \
+  -c 131072 \
+  -b 32768 \
+  -ub 1024 \
+  --parallel 1 \
+  --jinja \
+  --chat-template-file ~/Git/llama.cpp/models/templates/Qwen3-Coder.jinja
+```
+
+**Performance:** ~15-27 tok/s generation on M1 Max
+
+### Qwen3-Coder-30B-A3B (Recommended)
+
+Uses the built-in preset with Q8_0 quantization (higher quality):
+
+```bash
+llama-server --fim-qwen-30b-default --port 8127
+```
+
+Downloads `ggml-org/Qwen3-Coder-30B-A3B-Instruct-Q8_0-GGUF` automatically on first
+run.
+
+### Qwen3-Coder-Next-80B-A3B (Newest SOTA Coder)
+
+The latest and most capable coding model from Qwen. 80B MoE with only 3B active
+parameters. Requires ~46GB RAM.
+
+```bash
+llama-server -hf unsloth/Qwen3-Coder-Next-GGUF:UD-Q4_K_XL \
+  --port 8130 \
+  -c 131072 \
+  -b 2048 \
+  -ub 1024 \
+  --parallel 1 \
+  -fa on \
+  --jinja \
+  --temp 1.0 \
+  --top-p 0.95 \
+  --top-k 40 \
+  --min-p 0.01
+```
+
+**Performance:** TBD (new model)
+
+**Quantization options:**
+
+| Quant | Size | Notes |
+|-------|------|-------|
+| UD-Q4_K_XL | ~46 GB | Recommended for 64GB systems |
+
+### Qwen3-Next-80B-A3B (Better Long Context)
+
+Newer SOTA model. Slower generation but performance doesn't degrade as much
+with long contexts:
+
+```bash
+llama-server -hf unsloth/Qwen3-Next-80B-A3B-Instruct-GGUF:Q4_K_XL \
+  --port 8126 \
+  -c 131072 \
+  -b 32768 \
+  -ub 1024 \
+  --parallel 1 \
+  --jinja
+```
+
+**Performance:** ~5x slower generation than Qwen3-30B-A3B, but better on long
+contexts
+
+### Nemotron-3-Nano-30B-A3B (NVIDIA Reasoning Model)
+
+```bash
+llama-server -hf unsloth/Nemotron-3-Nano-30B-A3B-GGUF:Q4_K_XL \
+  --port 8125 \
+  -c 131072 \
+  -b 32768 \
+  -ub 1024 \
+  --parallel 1 \
+  --jinja \
+  --chat-template-file ~/Git/llama.cpp/models/templates/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16.jinja \
+  --temp 0.6 \
+  --top-p 0.95 \
+  --min-p 0.01
+```
+
+**Recommended settings (from NVIDIA):**
+
+- Tool calling: `temp=0.6`, `top_p=0.95`
+- Reasoning tasks: `temp=1.0`, `top_p=1.0`
+
+### GLM-4.7-Flash (Zhipu AI 30B-A3B MoE)
+
+A capable 30B MoE model from Zhipu AI. Requires a custom chat template.
+
+```bash
+llama-server -hf unsloth/GLM-4.7-Flash-GGUF:UD-Q4_K_XL \
+  --port 8129 \
+  -c 131072 \
+  -b 2048 \
+  -ub 1024 \
+  --parallel 1 \
+  -fa on \
+  --jinja \
+  --chat-template-file ~/Git/llama.cpp/models/templates/glm-4.jinja
+```
+
+For higher quality, use Q8_0 (~32GB, 20-40% slower):
+
+```bash
+llama-server -hf unsloth/GLM-4.7-Flash-GGUF:Q8_0 \
+  --port 8129 \
+  -c 131072 \
+  -b 2048 \
+  -ub 1024 \
+  --parallel 1 \
+  -fa on \
+  --jinja \
+  --chat-template-file ~/Git/llama.cpp/models/templates/glm-4.jinja
+```
+
+**Critical settings explained:**
+
+| Setting | Why |
+|---------|-----|
+| `--jinja` | Required for correct chat template |
+| `--chat-template-file` | Uses the GLM-4 specific template from llama.cpp |
+| `-fa on` | Enables flash attention for faster prompt processing |
+| `-b 2048` | Smaller batch size works better for this model |
+
+**Performance (M1 Max 64GB):**
+
+- Cold start (first question): ~14 seconds (processing full system prompt)
+- Cached follow-ups: ~4-5 seconds
+- Prompt eval: ~68-388 tok/s (varies with cache hits)
+- Generation: ~12-13 tok/s
+
+**Quantization options:**
+
+| Quant | Size | Notes |
+|-------|------|-------|
+| UD-Q4_K_XL | ~18 GB | Good balance, recommended |
+| Q8_0 | ~32 GB | Higher quality, 20-40% slower |
+
+### Gemma-4-26B-A4B (Google MoE with Vision)
+
+A 26B MoE model from Google with only 4B active parameters. Supports up to 256K
+context. Optionally supports vision via a multimodal projector (mmproj).
+
+```bash
+llama-server -hf unsloth/gemma-4-26B-A4B-it-GGUF:UD-Q4_K_XL \
+  --port 8132 \
+  -c 131072 \
+  -b 2048 \
+  -ub 1024 \
+  --parallel 1 \
+  -fa on \
+  --jinja \
+  --temp 1.0 \
+  --top-p 0.95 \
+  --top-k 64
+```
+
+**Key settings:**
+
+| Setting | Why |
+|---------|-----|
+| `--temp 1.0` | Recommended by Google |
+| `--top-k 64` | Gemma-specific sampling parameter |
+| `-c 131072` | 128K context; Claude Code needs 20k+ for system prompt alone |
+| `-fa on` | Enables flash attention for faster prompt processing |
+
+**Performance (M1 Max 64 GB, ~37K input tokens):**
+
+pp = prompt processing, tg = token generation.
+
+- Cold start: pp 395 tok/s, tg 40 tok/s (~96s total)
+- Cached follow-up: tg 40 tok/s (~6s total, prompt
+  cached in ~0.4s)
+
+**Quantization options:**
+
+| Quant | Size | Notes |
+|-------|------|-------|
+| UD-Q4_K_XL | ~16 GB | Recommended, fits comfortably on 64GB systems |
+
+> **Thinking mode:** Enable thinking by prepending `<|think|>` to the system
+> prompt. The model outputs reasoning in `<|channel>thought…<channel|>` tags
+> before the final answer. For multi-turn conversations, only feed visible
+> answers back -- exclude prior thought blocks.
+
+### Qwen3.6-35B-A3B (Fast Qwen MoE)
+
+A 35B MoE model with 3B active parameters. Successor to Qwen3.5 with vision
+support. Uses sliding window attention (SWA).
+
+```bash
+llama-server -hf unsloth/Qwen3.6-35B-A3B-GGUF:UD-Q4_K_XL \
+  --port 8133 \
+  -ngl 999 \
+  --threads 8 \
+  -c 65536 \
+  -b 2048 \
+  -ub 1024 \
+  --parallel 1 \
+  -fa on \
+  --jinja \
+  --keep 1024 \
+  --swa-full \
+  --no-context-shift \
+  --chat-template-kwargs '{"enable_thinking": false}' \
+  --temp 0.7 \
+  --top-p 0.8 \
+  --top-k 20 \
+  --min-p 0.00 \
+  --no-mmap
+```
+
+**Critical settings:**
+
+| Setting | Why |
+|---------|-----|
+| No `--cache-type-k/v` | **Do not** use `q8_0` KV cache -- drops tg from ~35 to ~12 tok/s |
+| `--swa-full` | Expands SWA cache for prompt caching |
+| `--no-context-shift` | Required with SWA |
+| `--chat-template-kwargs …` | Disables thinking mode for agentic workflows |
+| `-c 65536` | 64K context -- enough for Claude Code |
+
+**Performance (M1 Max 64 GB, ~41K input tokens):**
+
+pp = prompt processing, tg = token generation.
+
+- Cold start: pp 575 tok/s, tg 35 tok/s (~79s total)
+- Cached follow-up: tg 35 tok/s (~8s total)
+
+**Quantization options:**
+
+| Quant | Size | Notes |
+|-------|------|-------|
+| UD-Q4_K_XL | ~23 GB | Recommended |
+| UD-Q4_K_M | ~22 GB | Slightly smaller |
+| UD-Q4_K_S | ~21 GB | Smallest Q4, marginal quality loss |
+
+> **Warning:** Using `--cache-type-k q8_0 --cache-type-v q8_0` reduces RAM but
+> **drops token generation from ~35 tok/s to ~12 tok/s** on this model.
+
+## Quick Reference
+
+| Model | Port | Command |
+|-------|------|---------|
+| GPT-OSS-20B | 8123 | `llama-server --gpt-oss-20b-default --port 8123` |
+| Qwen3-30B-A3B | 8124 | See full command above |
+| Nemotron-3-Nano | 8125 | See full command above |
+| Qwen3-Next-80B-A3B | 8126 | See full command above |
+| Qwen3-Coder-30B | 8127 | `llama-server --fim-qwen-30b-default --port 8127` |
+| Qwen3-Coder-Next | 8130 | See full command above (~46GB RAM) |
+| GLM-4.7-Flash | 8129 | See full command above (requires chat template) |
+| Gemma-4-26B-A4B | 8132 | See full command above |
+| Qwen3.6-35B-A3B | 8133 | See full command above (no q8_0 cache!) |
+
+## Usage
+
+1. Start the llama-server with your chosen model (first request will be slow
+   while model loads)
+2. In another terminal, run `cclocal <port>` to start Claude Code
+3. Use Claude Code as normal
+
+## Notes
+
+- First request is slow while the model loads into memory (~10-30 seconds
+  depending on model size)
+- Subsequent requests are fast
+- The `/v1/messages` endpoint in llama-server handles Anthropic API translation
+  automatically
+- Each model's chat template handles the model-specific prompt formatting
+
+## Troubleshooting
+
+**"failed to find a memory slot" errors:**
+
+Increase context size (`-c`) or reduce parallel slots (`--parallel 1`). Claude
+Code sends large system prompts (~20k+ tokens).
+
+**Slow generation:**
+
+- Increase batch size: `-b 32768`
+- Reduce parallel slots: `--parallel 1`
+- Check if model is fully loaded in RAM/VRAM
+
+**Model not responding correctly:**
+
+Ensure you're using the correct chat template for your model. The template
+handles formatting the Anthropic API messages into the model's expected format.
+
+---
+
+## Using Codex CLI with Local LLMs
+
+[OpenAI Codex CLI](https://github.com/openai/codex) can also use local models via
+llama-server's OpenAI-compatible `/v1/chat/completions` endpoint.
+
+### Configuration
+
+Add a local provider to `~/.codex/config.toml`:
+
+```toml
+[model_providers.llama-local]
+name = "Local LLM via llama.cpp"
+base_url = "http://localhost:8123/v1"
+wire_api = "chat"
+```
+
+For multiple ports (different models), define multiple providers:
+
+```toml
+[model_providers.llama-8123]
+name = "Local LLM port 8123"
+base_url = "http://localhost:8123/v1"
+wire_api = "chat"
+
+[model_providers.llama-8124]
+name = "Local LLM port 8124"
+base_url = "http://localhost:8124/v1"
+wire_api = "chat"
+```
+
+### Switching Models at Command Line
+
+Use the `--model` flag and `-c` (config) flag to switch models without editing
+the TOML file:
+
+```bash
+# Use GPT-OSS-20B on port 8123 (model name is immaterial)
+codex --model gpt-oss-20b -c model_provider=llama-8123
+
+# Use Qwen3-30B on port 8124 (model name is immaterial)
+codex --model qwen3-30b -c model_provider=llama-8124
+
+```
+
+You can also override nested config values with dots:
+
+```bash
+codex --model gpt-oss-20b \
+  -c model_provider=llama-local \
+  -c model_providers.llama-local.base_url="http://localhost:8124/v1"
+```
+
+### Running llama-server for Codex
+
+Use the same llama-server commands as for Claude Code.
+
+```bash
+# GPT-OSS-20B
+llama-server --gpt-oss-20b-default --port 8123
+
+# Qwen3-Coder-30B
+llama-server --fim-qwen-30b-default --port 8127
+```
+
+### Notes
+
+- Codex uses the `/v1/chat/completions` endpoint (OpenAI format), not
+  `/v1/messages` (Anthropic format)
+- Both endpoints are served by llama-server simultaneously
+- The same model can serve both Claude Code and Codex at the same time
+
+---
+
+## Vision Models with Codex CLI
+
+Codex CLI supports image inputs (`-i`/`--image` flags), and llama-server can serve
+vision-language models like Qwen3-VL. This enables local multimodal inference.
+
+> **Note:** Vision only works via the OpenAI-compatible `/v1/chat/completions`
+> endpoint (Codex), not the Anthropic `/v1/messages` endpoint (Claude Code).
+
+### Qwen3-VL-30B-A3B Setup
+
+Vision models require two GGUF files: the main model + a multimodal projector
+(mmproj).
+
+**One-time setup** (download the mmproj file):
+
+```bash
+just qwen3-vl-download
+# Or manually:
+mkdir -p ~/models
+hf download Qwen/Qwen3-VL-30B-A3B-Instruct-GGUF \
+  mmproj-Qwen3-VL-30B-A3B-Instruct-f16.gguf \
+  --local-dir ~/models
+```
+
+**Start the server** (port 8128):
+
+```bash
+just qwen3-vl
+# Or manually:
+llama-server -hf Qwen/Qwen3-VL-30B-A3B-Instruct-GGUF:Q4_K_M \
+  --mmproj ~/models/mmproj-Qwen3-VL-30B-A3B-Instruct-f16.gguf \
+  --port 8128 \
+  -c 32768 \
+  -b 2048 \
+  -ub 2048 \
+  --parallel 1 \
+  --jinja
+```
+
+**Use with Codex:**
+
+First, add the provider to `~/.codex/config.toml`:
+
+```toml
+[model_providers.llama-8128]
+name = "Qwen3-VL Vision"
+base_url = "http://localhost:8128/v1"
+wire_api = "chat"
+```
+
+Then run Codex with an image:
+
+```bash
+codex --model qwen3-vl -c model_provider=llama-8128 -i screenshot.png "describe this"
+```
+
+### Gemma-4-26B-A4B Vision Setup
+
+Gemma-4 also supports vision via a BF16 multimodal projector.
+
+**One-time setup** (download the mmproj file):
+
+```bash
+just gemma4-download
+# Or manually:
+mkdir -p ~/models
+hf download unsloth/gemma-4-26B-A4B-it-GGUF \
+  mmproj-BF16.gguf \
+  --local-dir ~/models
+```
+
+**Start the server** (port 8132):
+
+```bash
+just gemma4-vision
+# Or manually:
+llama-server -hf unsloth/gemma-4-26B-A4B-it-GGUF:UD-Q4_K_XL \
+  --mmproj ~/models/mmproj-BF16.gguf \
+  --port 8132 \
+  -c 131072 \
+  -b 2048 \
+  -ub 1024 \
+  --parallel 1 \
+  -fa on \
+  --jinja \
+  --temp 1.0 \
+  --top-p 0.95 \
+  --top-k 64
+```
+
+**Use with Codex:**
+
+First, add the provider to `~/.codex/config.toml`:
+
+```toml
+[model_providers.llama-8132]
+name = "Gemma-4 Vision"
+base_url = "http://localhost:8132/v1"
+wire_api = "chat"
+```
+
+Then run Codex with an image:
+
+```bash
+codex --model gemma-4 -c model_provider=llama-8132 -i screenshot.png "describe this"
+```
+
+### Quick Reference
+
+| Model | Port | Command |
+|-------|------|---------|
+| Qwen3-VL-30B-A3B | 8128 | `just qwen3-vl` (after `just qwen3-vl-download`) |
+| Gemma-4-26B-A4B | 8132 | `just gemma4-vision` (after `just gemma4-download`) |
