@@ -9,7 +9,7 @@ published: 2026-06-28T18:06:85+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260628180685
 upload: false
-Last Modified: 2026-06-28 18:06:12
+Last Modified: 2026-06-29 07:06:08
 ---
 
 ## 前言
@@ -84,11 +84,11 @@ Airport_LXY:
 
 ```
 - name: 自家落地@🩵良心云自动
-type: ss
-server: x.x.x.x
-port: xxx
-cipher: 2022-blake3-aes-256-gcm
-password: "xxxxxxx"
-udp: true
-dialer-proxy: 🩵良心云自动
+	type: ss
+	server: x.x.x.x
+	port: xxx
+	cipher: 2022-blake3-aes-256-gcm
+	password: "xxxxxxx"
+	udp: true
+	dialer-proxy: 🩵良心云自动
 ```
