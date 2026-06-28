@@ -9,9 +9,10 @@ published: 2026-06-28T18:06:85+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260628180685
 upload: false
-Last Modified: 2026-06-28 18:06:18
+Last Modified: 2026-06-28 18:06:12
 ---
 
+## 前言
 把自建节点和机场组合在一起，使用自己的分流规则甚至是链式落地
 
 1. 找一个 clash meta 配置模板
@@ -75,4 +76,19 @@ Airport_LXY:
 		- Airport_XXX_HK
 	interval: 300
 	lazy: true
+```
+
+## 用机场链式代理自己的落地
+
+假设你的机场支持的情况下，你又想用自己的落地节点，新建一个节点并在最后加一个 `dialer-proxy: 🩵良心云自动` 即可。（推荐把 `🩵良心云自动` 的类型采用 url-test，否则可能经常需要手动切换节点）
+
+```
+- name: 自家落地@🩵良心云自动
+type: ss
+server: x.x.x.x
+port: xxx
+cipher: 2022-blake3-aes-256-gcm
+password: "xxxxxxx"
+udp: true
+dialer-proxy: 🩵良心云自动
 ```
