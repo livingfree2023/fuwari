@@ -9,7 +9,7 @@ published: 2026-07-08T09:07:26+08:00
 image: https://developers.cloudflare.com/_astro/handshake.eh3a-Ml1_26dKUX.webp
 slug: slug20260708090726
 upload: false
-Last Modified: 2026-07-08 10:07:66
+Last Modified: 2026-07-08 10:07:31
 ---
 ## 背景
 一般服务器上运行了多个服务会用不通的端口，用户请求发到主机的后，WebService 进行 SSL 的解密，并根据域名或路径等规则，分派到各个不同的端口上。这个过程叫反向代理（Reverse Proxy）。
@@ -66,9 +66,13 @@ networks:
     external: true            # 声明这是一个外部已存在的网络
 ```
 
-6. 当所有容器都启动并加入到 `cf_tunnel` 网络后，`cloudflared` 容器就可以通过**其他容器的 container_name + 容器内端口**直接访问它们了，不需要经过宿主机的 IP。打开 Cloudflare Zero Trust 控制台 (Tunnels 页面)，在你的 Tunnel 规则中添加 **Public Hostname**， 比如 `nginx.yourdomain.com` 映射 `http://my_nginx:80`。
+6. 当所有容器都启动并加入到 `cf_tunnel` 网络后，`cloudflared` 容器就可以通过**其他容器的 container_name + 容器内端口**直接访问它们了，打开 Cloudflare Zero Trust 控制台 (Tunnels 页面)，在你的 Tunnel 规则中添加 **Public Hostname**， 比如 `nginx.yourdomain.com` 映射 `http://my_nginx:80`。
 
-这里最大的好处就是容器不再暴露服务端口，也不用配置端口映射了，而且可以直接使用容器的名字。非常安全又非常方便。
+我个人感觉最大的好处有：
+1. 容器不再暴露服务端口到公网，省了防火墙配置
+2. 也不用配置容器端口映射了（避免不同容器用一个端口，需要多个映射）
+3. tunnel 配置直接使用容器的名字，直观。
+4. 不再需要配置 DNS 以及更新宿主机 IP。
 
 [^1]: 网络不能是由 `cloudflared` 的 Compose 项目创建的，否则意味着：
 
@@ -76,9 +80,8 @@ networks:
 	- 命名会被自动加上“前缀”
 	- 对 `cloudflared` 执行 `docker compose down` 时，Compose 会尝试**删除**这个网络。如果此时其他容器正挂在这个网络上，`docker compose down` 就会报错，提示网络正在被使用无法删除。
 
-## 其他
+## 关于最后一步的补充
 
-### 关于最后一步的补充
 打通 cloudflared 和其他容器还有其他更*优雅*的方法，对其他项目的 yml 改动最小化（特别是复杂项目本来就有私有 network 的）
 1. 其他容器保留自己原本的网络，同时在配置里**多加一个** `cf_tunnel` 网络。
 
