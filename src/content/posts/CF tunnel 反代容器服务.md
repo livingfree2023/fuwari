@@ -9,7 +9,7 @@ published: 2026-07-08T09:07:26+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260708090726
 upload: false
-Last Modified: 2026-07-08 09:07:17
+Last Modified: 2026-07-08 09:07:11
 ---
 一般服务器上运行了多个服务会用不通的端口，用户请求发到主机的后，WebService 进行 SSL 的解密，并根据域名或路径等规则，分派到各个不同的端口上。这个过程叫反向代理（Reverse Proxy）。
 
@@ -24,7 +24,7 @@ Last Modified: 2026-07-08 09:07:17
 
 我稍微优化了一下第二步，采用 docker-compose 的方法
 1. 把面板给的 `docker` 版指令里面的 `tunnel` 命令部分复制出来。比如 `docker run cloudflare/cloudflared:latest tunnel --no-autoupdate run --token XXXXXXX `
-2. 写一个 docker-compose.yml 文件，在 command 那里替换掉（主要是 token）注意这里要加 networks 且必须是external的
+2. 写一个 docker-compose.yml 文件，在 command 那里替换掉（主要是 token）注意这里要加 networks 且必须是 external 的
 ```
 services:
     cloudflared:
@@ -39,6 +39,37 @@ networks:
   cf_tunnel:
       external: true
 ```
-3. 执行`docker network create cf_tunnel`
-4. 执行`docke compose up -d` 
-5. 然后去其他的服务容器修改他们的yml
+3. 先执行 `docker network create cf_tunnel` **必须，最后解释** [^1]
+4. 再执行 `docke compose up -d`
+5. 然后去其他的服务容器修改他们的 yml 文件，让他们全部加到同一个网络中。
+```
+services:
+  my_web_nginx:
+    image: nginx:latest
+    container_name: my_nginx  # 重点：固定容器名
+    restart: always
+    networks:
+      - cf_tunnel             # 将容器加入 cf_tunnel 网络
+    # 注意：这里甚至不需要暴露 ports (如 80:80)，因为 cloudflared 在内部就能访问它，更安全
+
+  my_blog:
+    image: wordpress:latest
+    container_name: my_blog   # 重点：固定容器名
+    restart: always
+    networks:
+      - cf_tunnel             # 同样加入 cf_tunnel 网络
+
+networks:
+  cf_tunnel:
+    external: true            # 声明这是一个外部已存在的网络
+```
+
+6. 当所有容器都启动并加入到 `cf_tunnel` 网络后，`cloudflared` 容器就可以通过**其他容器的 container_name + 容器内端口**直接访问它们了，不需要经过宿主机的 IP。打开 Cloudflare Zero Trust 控制台 (Tunnels 页面)，在你的 Tunnel 规则中添加 **Public Hostname**， 比如 `nginx.yourdomain.com` 映射 `http://my_nginx:80`。
+
+这里最大的好处就是容器不再暴露服务端口，也不用配置端口映射了，而且可以直接使用容器的名字。非常安全又非常方便。
+
+[^1]: 网络不能是由 `cloudflared` 的 Compose 项目创建的，否则意味着：
+
+	- **必须**先启动 `cloudflared`，其他容器才能启动。
+	- 命名会被自动加上“前缀”
+	- 对 `cloudflared` 执行 `docker compose down` 时，Compose 会尝试**删除**这个网络。如果此时其他容器正挂在这个网络上，`docker compose down` 就会报错，提示网络正在被使用无法删除。
