@@ -9,7 +9,7 @@ published: 2026-07-08T09:07:26+08:00
 image: https://developers.cloudflare.com/_astro/handshake.eh3a-Ml1_26dKUX.webp
 slug: slug20260708090726
 upload: false
-Last Modified: 2026-07-08 10:07:44
+Last Modified: 2026-07-08 10:07:66
 ---
 ## 背景
 一般服务器上运行了多个服务会用不通的端口，用户请求发到主机的后，WebService 进行 SSL 的解密，并根据域名或路径等规则，分派到各个不同的端口上。这个过程叫反向代理（Reverse Proxy）。
