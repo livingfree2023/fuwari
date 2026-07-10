@@ -7,7 +7,7 @@ published: 2026-07-10T10:07:76+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260710100776
 upload: false
-Last Modified: 2026-07-10 10:07:82
+Last Modified: 2026-07-10 10:07:70
 ---
 ## 问题
 
@@ -29,7 +29,7 @@ Host *.github.com
 ```
 
 **尽量不要用 localhost，直接用 127 地址，避免被解析 v6 节外生枝**
-**用 `*.github` 可以对 gist.github.com 生效**
+**用 `*.github.com` 可以对 `gist.github.com` 生效**
 
 ## 方案 B
 
@@ -39,4 +39,4 @@ Host *.github.com
 git config --global core.sshCommand "ssh -o ProxyCommand='nc -X connect -x 127.0.0.1:端口 %h %p'" 
 ```
 
-但是缺点是这样本机所有的git指令都会走代理，如果工作区域有非github的repo，可能不够灵活。但如果配置好代理分流的话也无所谓，看个人喜好
+**缺点是这样本机所有的 git 指令都会走代理，如果工作区域有非 github 的 repo，可能不够灵活。但如果配置好代理分流的话也无所谓，看个人喜好**
