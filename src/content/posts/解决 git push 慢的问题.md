@@ -7,17 +7,18 @@ published: 2026-07-10T10:07:76+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260710100776
 upload: false
-Last Modified: 2026-07-10 10:07:79
+Last Modified: 2026-07-10 12:07:56
 ---
+
 ## 问题
 
 `git push` 等操作打开代理 tunnel 模式时正常，但是不开 tunnel 就没法用或者速度极慢
 
-即使在 git config 中配置了 http + https proxy 也没用。
+即使在 git config 中配置了 http + https proxy 也没用。我导致我习惯性的操作前开 tun，从来没思考怎么解决这个问题。
 
-## 原因
+今天找了下原因
 
-如果 remote 地址是 `git@xxx.github.com` 的话，其实 git 底层走的是 ssh 通道，所以 `git config` 的配置被忽略了。git 配置中的 https proxy 只对使用 https 链接的 repo 起作用。`git remove -v` 查看当前 repo 的链接形式。
+`git remove -v` 查看当前 repo 的链接形式（https 有自己的鉴权方式，不在讨论范围）。如果和我一样是用 ssh pubkey 鉴权的， git 底层走的是 ssh 通道，而 `git config` 配置中的 https proxy 只对使用 https 链接的 repo 起作用。所以不开 tun 就无法访问。
 
 ## 方案 A
 
