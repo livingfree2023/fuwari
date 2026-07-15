@@ -1,6 +1,6 @@
 ---
 title: Obsidian自动化构建博客4-小鸡监控仓库
-category: Blog
+category: 技术
 description: ""
 tags:
   - GitBlog

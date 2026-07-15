@@ -1,7 +1,7 @@
 ---
 title: Obsidian自动化构建博客6-插入图片
 description: ""
-category: Blog
+category: 技术
 tags:
   - GitBlog
 published: 2026-03-20T13:27:00+08:00

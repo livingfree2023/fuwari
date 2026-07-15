@@ -1,6 +1,6 @@
 ---
 title: Obsidian自动化构建博客7-简化
-category: Blog
+category: 技术
 tags:
   - GitBlog
   - Obsidian

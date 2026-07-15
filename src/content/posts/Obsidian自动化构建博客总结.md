@@ -1,6 +1,6 @@
 ---
 title: Obsidian自动化构建博客总结
-category: Blog
+category: 技术
 tags:
   - GitBlog
 published: 2026-03-23T11:03:41+08:00

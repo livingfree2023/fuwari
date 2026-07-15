@@ -1,6 +1,6 @@
 ---
 title: Obsidian自动化构建博客5-本地编译同步VPS
-category: Blog
+category: 技术
 description: ""
 tags:
   - GitBlog

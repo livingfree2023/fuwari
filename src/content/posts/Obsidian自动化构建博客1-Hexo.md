@@ -4,7 +4,7 @@ tags:
   - Hexo
   - Obsidian
   - Workflow
-category: Blog
+category: 技术
 description: 本文分享如何搭建一套源码私有化、编译云端化、写作原生化的个人博客系统，实现「本地只管写，云端自动发」的极致体验。
 published: 2026-03-19T17:00:00+08:00
 draft: false

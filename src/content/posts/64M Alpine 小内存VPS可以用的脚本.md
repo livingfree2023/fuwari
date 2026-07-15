@@ -1,6 +1,6 @@
 ---
 title: 64M Alpine 小内存VPS可以用的脚本
-category: Blog
+category: 技术
 tags:
   - GitBlog
   - alpine

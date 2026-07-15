@@ -1,6 +1,6 @@
 ---
 title: 如何免费运行 Claude Code
-category: Blog
+category: 技术
 tags:
   - ClaudeCode
   - Ollama

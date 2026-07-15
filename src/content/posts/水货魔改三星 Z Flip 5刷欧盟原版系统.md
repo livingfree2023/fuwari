@@ -1,6 +1,6 @@
 ---
 title: 水货三星 Z Flip 5刷机
-category: Blog
+category: 技术
 tags:
   - 手机
   - 刷机

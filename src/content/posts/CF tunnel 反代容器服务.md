@@ -1,6 +1,6 @@
 ---
 title: CF tunnel 反代容器服务
-category: Blog
+category: 技术
 tags:
   - Cloudflare
   - Tunnel

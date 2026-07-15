@@ -1,6 +1,6 @@
 ---
 title: Claude Code and Codex with Local LLMs
-category: Blog
+category: 技术
 tags:
   - ClaudeCode
   - Codex

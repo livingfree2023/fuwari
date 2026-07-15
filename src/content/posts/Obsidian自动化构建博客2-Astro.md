@@ -1,7 +1,7 @@
 ---
 title: Obsidian自动化构建博客2-Astro
 published: 2026-03-19T18:00:00+08:00
-category: Blog
+category: 技术
 tags:
   - Astro
   - Workflow

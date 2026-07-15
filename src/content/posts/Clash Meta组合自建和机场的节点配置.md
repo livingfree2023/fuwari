@@ -1,6 +1,6 @@
 ---
 title: Clash Meta组合自建和机场的节点配置
-category: Tech
+category: 技术
 tags:
   - 翻墙
 published: 2026-06-28T18:06:85+08:00

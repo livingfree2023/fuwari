@@ -1,6 +1,6 @@
 ---
 title: Obsidian自动化构建博客3-小鸡编译
-category: Blog
+category: 技术
 description: ""
 tags:
   - GitBlog

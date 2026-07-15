@@ -1,6 +1,6 @@
 ---
 title: Clash 可用的测速 204 URL
-category: Tech
+category: 技术
 tags:
   - 翻墙
 published: 2026-03-27T08:03:22+08:00

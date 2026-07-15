@@ -1,7 +1,7 @@
 ---
 Last Modified: 2026-07-15 11:07:41
 title: DNS 泄漏
-category: Tech
+category: 技术
 tags:
   - DNS
   - VPS

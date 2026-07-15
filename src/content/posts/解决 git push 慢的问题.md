@@ -1,6 +1,6 @@
 ---
 title: 解决Git push慢的问题
-category: Blog
+category: 技术
 tags:
   - GitBlog
 published: 2026-07-10T10:07:76+08:00

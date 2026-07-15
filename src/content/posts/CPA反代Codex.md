@@ -1,6 +1,6 @@
 ---
 title: CPA反代Codex
-category: Blog
+category: 技术
 tags:
   - GitBlog
 published: 2026-05-09T13:05:96+08:00

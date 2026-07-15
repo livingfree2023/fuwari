@@ -1,6 +1,6 @@
 ---
 title: Gemini in Chrome
-category: Blog
+category: 技术
 tags:
   - GitBlog
 published: 2026-05-15T14:05:35+08:00

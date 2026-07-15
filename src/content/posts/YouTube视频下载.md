@@ -1,14 +1,15 @@
 ---
 title: YouTube视频下载
-category: Blog
+category: 技术
 tags:
   - Youtube
   - Aria2
+  - VPS
 published: 2026-05-21T13:05:81+08:00
 image: https://image.heavenroad.org/Pasted%20image%2020260524094607.png
 slug: slug20260521130581
 upload: false
-Last Modified: 2026-05-24 09:05:56
+Last Modified: 2026-07-15 11:07:19
 ---
 
 [原作者：快乐的出帆](https://www.nodeseek.com/post-740487-1)

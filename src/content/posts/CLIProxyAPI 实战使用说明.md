@@ -1,6 +1,6 @@
 ---
 title: CLIProxyAPI 实战使用说明
-category: Tech
+category: 技术
 tags:
   - AI
   - CPA

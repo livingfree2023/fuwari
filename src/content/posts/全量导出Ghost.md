@@ -1,6 +1,6 @@
 ---
 title: 全量导出Ghost
-category: Blog
+category: 技术
 description: ""
 tags:
   - GitBlog
@@ -138,7 +138,7 @@ async function startExport() {
         '---',
         `title: ${post.title}`,
         `description: "${post.custom_excerpt || ""}"`,
-        `category: Blog`,
+        `category: 技术`,
         `tags:`,
         `${rawTags}`,
         `image: "${localFeatureImage}"`,
