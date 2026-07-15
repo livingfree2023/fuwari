@@ -1,10 +1,10 @@
 ---
-Last Modified: 2026-04-12 11:04:61
-title: DNS 泄露
-category: VPS
+Last Modified: 2026-07-15 11:07:41
+title: DNS 泄漏
+category: Tech
 tags:
   - DNS
-  - DNS泄漏
+  - VPS
 published: 2026-04-12T11:04:65+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260412110465

@@ -1,6 +1,6 @@
 ---
 title: CLIProxyAPI 实战使用说明
-category: AI
+category: Tech
 tags:
   - AI
   - CPA
@@ -9,7 +9,7 @@ published: 2026-04-13T19:04:25+08:00
 image: https://image.heavenroad.org/Pasted%20image%2020260413195126.png
 slug: slug20260413190425
 upload: false
-Last Modified: 2026-04-13 22:04:76
+Last Modified: 2026-07-15 11:07:18
 ---
 
 ## 1. 配置详细解说
@@ -750,7 +750,7 @@ Gemini-CLI、Claude 和 Codex 的 OAuth 认证都需要一个“回调”（Call
 
 如果在配置或使用过程中遇到任何问题，欢迎加入官方社群进行交流咨询，作者很热情很 Nice 哟~
 
-> [!note] 
+> [!note]
 > 转载自@hkfires 发布于 9/29/2025, 11:09:36 AM，编辑于 9/29/2025, 11:13:04 AM
 >
 > - [手把手带你用上AI神器 - CLIProxyAPI（零：配置详细解说）](https://www.nodeseek.com/post-464540-1)

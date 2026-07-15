@@ -1,15 +1,13 @@
 ---
 title: Clash Meta组合自建和机场的节点配置
-category: VPS
+category: Tech
 tags:
-  - clash
-  - 节点
-  - 机场
+  - 翻墙
 published: 2026-06-28T18:06:85+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260628180685
 upload: false
-Last Modified: 2026-06-29 07:06:08
+Last Modified: 2026-07-15 11:07:51
 ---
 
 ## 前言

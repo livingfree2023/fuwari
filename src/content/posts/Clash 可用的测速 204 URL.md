@@ -1,13 +1,13 @@
 ---
 title: Clash 可用的测速 204 URL
-category: VPS
+category: Tech
 tags:
-  - VPS
-  - clash
+  - 翻墙
 published: 2026-03-27T08:03:22+08:00
 image: https://image.heavenroad.org/Pasted%20image%2020260327082423.png
 slug: slug20260327080322
 upload: false
+Last Modified: 2026-07-15 11:07:50
 ---
 
 Clash 的 url-test 可以请求一个返回响应 204 的 URL 测试节点的延迟，从而评估节点质量来自动选择最优的线路。

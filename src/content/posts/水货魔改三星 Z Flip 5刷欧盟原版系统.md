@@ -1,6 +1,6 @@
 ---
 title: 水货三星 Z Flip 5刷机
-category: 手机
+category: Blog
 tags:
   - 手机
   - 刷机
@@ -8,6 +8,7 @@ tags:
 published: 2026-03-26T08:03:29+08:00
 slug: slug_20260326080329
 image: https://www.techadvisor.com/wp-content/uploads/2024/04/Galaxy-Z-Flip-5-review_1.jpg
+Last Modified: 2026-07-15 11:07:12
 ---
 黄鱼淘的二手 Z flip 5，拿到发现解锁了 boot loader，系统显示 SM-F7310 （OneUI 6.1.1 Android 14）是国行的系统，我想更新 one ui 7 但是刷 7310 的系统提示 PIT 错误。
 
