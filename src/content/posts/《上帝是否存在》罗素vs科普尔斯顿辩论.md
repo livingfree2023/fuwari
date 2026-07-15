@@ -1,7 +1,7 @@
 ---
 Last Modified: 2026-07-12 22:07:59
 title: 《上帝是否存在》罗素vs科普尔斯顿辩论
-category: HeavenRoad
+category: 宗教
 tags:
   - 存在
   - 上帝
