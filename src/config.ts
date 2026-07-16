@@ -50,8 +50,8 @@ export const navBarConfig: NavBarConfig = {
 			external: true, // Show an external link icon and will open in a new tab
 		},
 		{
-			name: "NodeImage",
-			url: "https://www.nodeimage.com",
+			name: "Prayer",
+			url: "https://www.heavenroad.org/posts/slug20260630120640/",
 			external: true, // Show an external link icon and will open in a new tab
 		},
 	],
