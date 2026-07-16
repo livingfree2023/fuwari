@@ -1,15 +1,13 @@
 ---
-Last Modified: 2026-07-16 13:07:31
+Last Modified: 2026-07-16 13:07:42
 title: 油画作品 TOP 50
 category: 历史
 tags:
   - 艺术
 published: 2026-07-16T13:19:38+08:00
-image: https://image.heavenroad.org/default_cover.webp
+image: https://image.heavenroad.org/xRqbwS4odpkSQscn3jHECh-575-80.jpg.webp
 slug: slug20260716132924
 upload: false
----
-
 ---
 
 ## 01. 蒙娜丽莎 | Mona Lisa
@@ -56,7 +54,7 @@ upload: false
 
 ## 04. 维纳斯的诞生 | The Birth of Venus
 
-![](Pasted%20image%2020260506133534.png)
+![](https://image.heavenroad.org/Pasted%20image%2020260506133534.png)
 - **艺术家：** 波提切利 **Sandro Botticelli**
     
 - **创作年代：** 约 **1484** – **1486** 年
@@ -71,7 +69,7 @@ upload: false
 
 ## 05. 宫娥 | Las Meninas
 
-![](Pasted%20image%2020260506133248.png)
+![](https://image.heavenroad.org/Pasted%20image%2020260506133248.png)
 
 - **艺术家：** 委拉斯开兹 **Diego Velázquez**
     
@@ -87,7 +85,7 @@ upload: false
 
 ## 06. 夜巡 | The Night Watch
 
-![](Pasted%20image%2020260506133457.png)
+![](https://image.heavenroad.org/Pasted%20image%2020260506133457.png)
 - **艺术家：** 伦勃朗 **Rembrandt van Rijn**
     
 - **创作年代：** **1642** 年
@@ -102,7 +100,7 @@ upload: false
 
 ## 07. 接吻 | The Kiss
 
-![](Pasted%20image%2020260506133812.png)
+![](https://image.heavenroad.org/Pasted%20image%2020260506133812.png)
 
 - **艺术家：** 克里姆特 **Gustav Klimt**
     
@@ -118,7 +116,7 @@ upload: false
 
 ## 08. 印象 · 日出 | Impression, Sunrise
 
-![](Pasted%20image%2020260506133900.png)
+![](https://image.heavenroad.org/Pasted%20image%2020260506133900.png)
 
 - **艺术家：** 莫奈 **Claude Monet**
     
@@ -134,7 +132,7 @@ upload: false
 
 ## 09. 呐喊 | The Scream
 
-![](Pasted%20image%2020260506133959.png)
+![](https://image.heavenroad.org/Pasted%20image%2020260506133959.png)
 
 - **艺术家：** 蒙克 **Edvard Munch**
     
@@ -150,7 +148,7 @@ upload: false
 
 ## 10. 最后的晚餐 | The Last Supper
 
-![](Pasted%20image%2020260506134057.png)
+![](https://image.heavenroad.org/Pasted%20image%2020260506134057.png)
 
 - **艺术家：** 达 · 芬奇 **Leonardo da Vinci**
     
@@ -166,7 +164,7 @@ upload: false
 
 ## 11. 美国哥特式 | American Gothic
 
-![](Pasted%20image%2020260506134154.png)
+![](https://image.heavenroad.org/Pasted%20image%2020260506134154.png)
 
 - **艺术家：** 格兰特 · 伍德 **Grant Wood**
     
@@ -182,7 +180,7 @@ upload: false
 
 ## 12. 睡莲 | Water Lilies
 
-![](Pasted%20image%2020260506134254.png)
+![](https://image.heavenroad.org/Pasted%20image%2020260506134254.png)
 
 - **艺术家：** 莫奈 **Claude Monet**
     
@@ -198,7 +196,7 @@ upload: false
 
 ## 13. 大碗岛的星期天下午 | A Sunday Afternoon on the Island of La Grande Jatte
 
-![](Pasted%20image%2020260506134555.png)
+![](https://image.heavenroad.org/Pasted%20image%2020260506134555.png)
 
 - **艺术家：** 乔治 · 修拉 **Georges Seurat**
     
@@ -214,7 +212,7 @@ upload: false
 
 ## 14. 自由引导人民 | Liberty Leading the People
 
-![](Pasted%20image%2020260506134654.png)
+![](https://image.heavenroad.org/Pasted%20image%2020260506134654.png)
 
 - **艺术家：** 德拉克罗瓦 **Eugène Delacroix**
     
@@ -230,8 +228,8 @@ upload: false
 
 ## 15. 格尔尼卡 | Guernica
 
-![](Pasted%20image%2020260506135517.png)
-![](Great%20Art%20Explained%20-%20Picasso’s%20Guernica%20Great%20Art%20Explained%20[qJLH7JAsBHA%20-%201020x574%20-%204m19s].png)
+![](https://image.heavenroad.org/Pasted%20image%2020260506135517.png)
+![](https://image.heavenroad.org/Great%20Art%20Explained%20-%20Picasso%E2%80%99s%20Guernica%20Great%20Art%20Explained%20%5BqJLH7JAsBHA%20-%201020x574%20-%204m19s%5D.png)
 - **艺术家：** 毕加索 **Pablo Picasso**
     
 - **创作年代：** **1937** 年
