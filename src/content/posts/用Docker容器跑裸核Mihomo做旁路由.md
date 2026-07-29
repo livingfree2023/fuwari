@@ -13,7 +13,7 @@ upload: false
 Last Modified: 2026-07-29 13:07:96
 ---
 
-假如局域网 LAN 中有一台 NAS 或者限制的主机可以跑 docker，那么就可以获得一个 24 小时在线的旁路由。
+假如局域网 LAN 中有一台 NAS 或者闲置的主机可以跑 docker，那么就可以获得一个 24 小时在线的旁路由。
 
 复制这个 `docker-compose.yml` 并且把 订阅或者自建的配置文件存成`config.yaml` 放在同一个目录下（端口映射按自己的配置调整）
 
