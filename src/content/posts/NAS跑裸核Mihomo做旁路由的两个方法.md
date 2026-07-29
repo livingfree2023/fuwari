@@ -11,14 +11,14 @@ published: 2026-07-29T12:53:03+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260729125303
 upload: false
-Last Modified: 2026-07-29 14:07:00
+Last Modified: 2026-07-29 14:07:70
 ---
 
 假如局域网 LAN 中有一台 NAS 或者闲置的主机可以，那么就可以获得一个 24 小时在线的旁路由，给所有设备翻墙使用。
 
 ## 方法一：用 Docker 容器跑
 
-复制这个 `docker-compose.yml` 并且把 订阅或者自建的配置文件存成`config.yaml` 放在同一个目录下（端口映射按自己的配置调整）
+在群晖 DSM 的 Container Manager 中添加一个 project，填入这个 `docker-compose.yml` 并且把 订阅或者自建的配置文件存成`config.yaml` 放在同一个目录下（端口映射按自己的配置内设置调整）
 
 ``` 
 
@@ -37,11 +37,13 @@ services:
       - ./config.yaml:/root/.config/mihomo/config.yaml
 ```
 
-SSH 命令行用 `docker compose up -d` 启动，或者在群晖 DSM 的 Container Manager 中添加后启动。（不会的问 AI）
+可以全部图形化操作，不赘述了（不会的问 AI）
 
 ## 方法二：直接跑二进制
 
-在官方发布页 `https://github.com/MetaCubeX/mihomo/releases/` 下载自己机器架构的（群晖一般来说下`mihomo-linux-amd64-****.gz`)，解压到 NAS。以下步骤需要通过 SSH 执行（不会的问 AI）
+> 以下步骤全部需要通过 SSH 命令行，（不会的建议使用方法一）
+
+在官方发布页 `https://github.com/MetaCubeX/mihomo/releases/` 下载自己机器架构的（群晖一般来说下`mihomo-linux-amd64-****.gz`)，解压到 NAS。
 
 ### 准备工作
 
@@ -83,7 +85,7 @@ WantedBy=multi-user.target
 
 ### 2. 重新加载配置并启动服务
 
-保存并退出编辑器后，运行以下命令：
+保存并退出编辑器后，运行以下命令（只需要做一次之后重启关机都不用再做）：
 
 ```
 # 1. 重新加载 systemd 配置
@@ -132,3 +134,5 @@ sudo systemctl restart mihomo
 ```
 (curl -fL -s "替换成订阅的链接"  -o /volume1/mihomo/config/config.yaml.tmp && mv /volume1/mihomo/config/config.yaml.tmp /volume1/mihomo/config/config.yaml) && echo "Successfully updated config.yaml" || echo "Failed to download config.yaml"
 ```
+
+（不会的问 AI）
