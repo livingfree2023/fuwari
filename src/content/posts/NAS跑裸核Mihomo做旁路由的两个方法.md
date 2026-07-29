@@ -11,7 +11,7 @@ published: 2026-07-29T12:53:03+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260729125303
 upload: false
-Last Modified: 2026-07-29 14:07:67
+Last Modified: 2026-07-29 14:07:00
 ---
 
 假如局域网 LAN 中有一台 NAS 或者闲置的主机可以，那么就可以获得一个 24 小时在线的旁路由，给所有设备翻墙使用。
@@ -45,7 +45,7 @@ SSH 命令行用 `docker compose up -d` 启动，或者在群晖 DSM 的 Contain
 
 ### 准备工作
 
-把解压的二进制文件改好名字，和配置文件找一个空目录存放，比如 `/volum1/mihomo/bin` 和 `/volum1/mihomo/config`
+把解压的二进制文件改好名字，和配置文件找一个空目录存放，比如 `/volume1/mihomo/bin` 和 `/volume1/mihomo/config`
 
 ### 1. 创建 systemd 服务配置文件
 
@@ -66,7 +66,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=root
-ExecStart=/volum1/mihomo/bin/mihomo -d /volum1/mihomo/config
+ExecStart=/volume1/mihomo/bin/mihomo -d /volume1/mihomo/config
 Restart=on-failure
 RestartSec=5s
 LimitNOFILE=65535
@@ -124,11 +124,11 @@ sudo systemctl restart mihomo
 
 ## 面板
 
-无论用哪种方法部署后，用浏览器访问 `https://metacubex.github.io/metacubexd` endpoint 的 ip 填入当前机器的 IP 前面加 HTTP （比如`http://192.168.0.100`)，端口默认`9090` 应该就可以进行控制了，非常方便。比部署虚拟机搞 OpenWRT 做旁路由占用资源低多了，也便于管理。缺点是没有 OpenClash 之类的客户端自动更新订阅。
+无论用哪种方法部署后，用浏览器访问 `https://metacubex.github.io/metacubexd` endpoint url 的填入 NAS 的 IP 前面加 HTTP ，比如`http://192.168.0.100:9090`，（端口默认`9090`） 应该就可以进行查看和控制了。比部署虚拟机搞 OpenWRT 做旁路由占用资源低多了，也便于管理。缺点是没有 OpenClash 之类的客户端自动更新订阅。
 
-然后你就可以在 DSM 的计划任务中新建一个自动更新订阅的脚本，定时执行
+但是如果你在 DSM 的计划任务中新建一个自动更新订阅的脚本，定时执行，那就完全可以不用管了
 示例：
 
 ```
-(curl -fL -s "替换成订阅的链接"  -o config.yaml.tmp && mv config.yaml.tmp config.yaml) && echo "Successfully updated config.yaml" || echo "Failed to download config.yaml"
+(curl -fL -s "替换成订阅的链接"  -o /volume1/mihomo/config/config.yaml.tmp && mv /volume1/mihomo/config/config.yaml.tmp /volume1/mihomo/config/config.yaml) && echo "Successfully updated config.yaml" || echo "Failed to download config.yaml"
 ```
