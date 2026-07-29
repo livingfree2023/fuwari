@@ -11,33 +11,57 @@ published: 2026-07-29T12:53:03+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260729125303
 upload: false
-Last Modified: 2026-07-29 14:07:70
+Last Modified: 2026-07-29 19:07:55
 ---
 
-假如局域网 LAN 中有一台 NAS 或者闲置的主机可以，那么就可以获得一个 24 小时在线的旁路由，给所有设备翻墙使用。
+假如局域网 LAN 中有一台 NAS 或者闲置的主机可以，那么就可以获得一个 24 小时在线的旁路由，给所有设备使用。
 
 ## 方法一：用 Docker 容器跑
 
 在群晖 DSM 的 Container Manager 中添加一个 project，填入这个 `docker-compose.yml` 并且把 订阅或者自建的配置文件存成`config.yaml` 放在同一个目录下（端口映射按自己的配置内设置调整）
 
-``` 
-
+```
 services:
-  mihomo:
-    # docker.1ms.run 是国内加速用，不是必须
-    image: docker.1ms.run/metacubex/mihomo:latest
-    container_name: mihomo
-    restart: always
-    ports:
-      - "1080:1080" # Mixed HTTP/SOCKS5 Proxy Port
-      - "1071:1071" # HTTP
-      - "1081:1081" # SOCKS
-      - "9090:9090" # External Controller API Port (For Web UIs)
-    volumes:
-      - ./config.yaml:/root/.config/mihomo/config.yaml
+  mihomo:
+    image: docker.1ms.run/metacubex/mihomo:latest
+    container_name: mihomo
+    restart: unless-stopped
+    # Host network mode (Required for TUN / Transparent Proxying)
+    network_mode: host
+    # Enhance system open file limits to prevent "too many open files" errors under heavy traffic
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    # CPU priority tuning
+    cpu_shares: 2048
+
+    # Environment variables
+    environment:
+      - TZ=Asia/Shanghai  # Adjust to your local timezone for correct log timestamps
+
+    # Network permissions for TUN mode
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+    # Mount entire directory to retain GeoIP data, rule-providers, and runtime cache
+    volumes:
+      - .:/root/.config/mihomo
+
+    # Prevent Synology disk space exhaustion from Docker log accumulation
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 ```
 
-可以全部图形化操作，不赘述了（不会的问 AI）
+> 容器配置中启用了可以使用 tun 模式，但是真正的是否开启透明代理，还是要看配置文件里面是怎么写的。也可以在浏览器面板中手动开启关闭（见最后）
+
+这个方法可以全部图形化操作，具体步骤不赘述了（不会的问 AI）
 
 ## 方法二：直接跑二进制
 
@@ -124,9 +148,9 @@ sudo systemctl stop mihomo
 sudo systemctl restart mihomo
 ```
 
-## 面板
+## 图形化控制面板
 
-无论用哪种方法部署后，用浏览器访问 `https://metacubex.github.io/metacubexd` endpoint url 的填入 NAS 的 IP 前面加 HTTP ，比如`http://192.168.0.100:9090`，（端口默认`9090`） 应该就可以进行查看和控制了。比部署虚拟机搞 OpenWRT 做旁路由占用资源低多了，也便于管理。缺点是没有 OpenClash 之类的客户端自动更新订阅。
+无论用哪种方法部署后，用浏览器访问 `https://metacubex.github.io/metacubexd` endpoint url 的填入 NAS 的地址加 mihomo 的端口 ，比如`http://192.168.0.100:9090`，（端口默认`9090`） 应该就可以进行查看和控制了。比部署虚拟机搞 OpenWRT 做旁路由占用资源低多了，也便于管理。缺点是没有 OpenClash 之类的客户端自动更新订阅。
 
 但是如果你在 DSM 的计划任务中新建一个自动更新订阅的脚本，定时执行，那就完全可以不用管了
 示例：
