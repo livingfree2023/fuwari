@@ -10,7 +10,7 @@ published: 2026-07-29T12:53:03+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260729125303
 upload: false
-Last Modified: 2026-07-29 13:07:96
+Last Modified: 2026-07-29 13:07:72
 ---
 
 假如局域网 LAN 中有一台 NAS 或者闲置的主机可以跑 docker，那么就可以获得一个 24 小时在线的旁路由。
