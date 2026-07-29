@@ -11,15 +11,16 @@ published: 2026-07-29T12:53:03+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260729125303
 upload: false
-Last Modified: 2026-07-29 19:07:49
+Last Modified: 2026-07-29 19:07:66
 ---
 
+NAS 虚拟 OPENWRT 其实要配置的东西太多了，比如 ipv6 就可能劝退一批人，但是裸核跑比想象的方便多了，系统占用极低，和 Openwrt 对比，内存只要 50MB，磁盘空间也只要一个核。前提条件是配置文件需要手搓一个完美或者找一个优秀的模版，把 dns、分流规则等都写好，有这些之后就可以开始了。（不懂的问 AI）
 
-NAS虚拟OPENWRT其实要配置的东西太多了，比如ipv6就可能劝退一批人，但是裸核跑比想象的方便多了，系统占用极低，和Openwrt对比，内存只要50MB，磁盘空间也只要一个核。前提条件是配置文件需要手搓一个完美或者找一个优秀的模版，把dns、分流规则等都写好，有这些之后就可以开始了。（不懂的问AI）
+> 旁路由开启 tun 后可以直接把家里的 DHCP 配置改成让 NAS 当网关，就可以做到全屋自动生效，手机平板电脑 TV 等等啥都不用装。只要在 NAS 中关闭 DHCP，手动配置网卡，网关用光猫/交换机/路由器的 IP。
 
 ## 方法一：用 Docker 容器跑
 
-在群晖 DSM 的 Container Manager 中添加一个 project，填入以下内容，并且把订阅或者自建的配置文件存成`config.yaml` 放在同一个目录下
+在群晖 DSM 的 Container Manager 中添加一个 project，填入以下内容，并且把订阅或者自建的配置文件存成 `config.yaml` 放在同一个目录下
 
 ```
 services:
@@ -67,7 +68,6 @@ services:
 ## 方法二：直接跑二进制
 
 > 以下步骤全部需要通过 SSH 命令行，（不会的建议使用方法一）
-
 
 ### 准备工作
 
@@ -161,4 +161,4 @@ sudo systemctl restart mihomo
 (curl -fL -s "替换成订阅的链接"  -o /volume1/mihomo/config/config.yaml.tmp && mv /volume1/mihomo/config/config.yaml.tmp /volume1/mihomo/config/config.yaml) && echo "Successfully updated config.yaml" || echo "Failed to download config.yaml"
 ```
 
-如果是用docker的，可以直接重启docker或者用面板手动reload（不会的问 AI）
+如果是用 docker 的，可以直接重启 docker 或者用面板手动 reload（不会的问 AI）
