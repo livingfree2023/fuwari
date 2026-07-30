@@ -11,7 +11,7 @@ published: 2026-07-29T12:53:03+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260729125303
 upload: false
-Last Modified: 2026-07-30 08:07:48
+Last Modified: 2026-07-30 22:07:96
 ---
 
 NAS 虚拟 OPENWRT 其实要配置的东西太多了，比如 ipv6 就可能劝退一批人，但是裸核跑比想象的方便多了，系统占用极低，和 Openwrt 对比，内存只要 50MB，磁盘空间也只要一个核。前提条件是配置文件需要手搓一个完美或者找一个优秀的模版，把 dns、分流规则等都写好，有这些之后就可以开始了。（不懂的问 AI）
@@ -193,3 +193,292 @@ sudo systemctl restart mihomo
 ```
 
 如果是用 docker 的，可以直接重启 docker 或者用面板手动 reload（不会的问 AI）
+
+---
+
+## 更新：
+如果要开启 tun，又不影响 dsm 本身的服务（比如 pt），用 macvlan 把容器换一个 IP。但是要解决 IPv6 的问题（IPv6 需要能支持光猫换前缀的情况）。解决后又会发现无论如何 tun 无法启用，折腾一整天，最后 Gemini 总结如下：
+
+在 Synology DSM 7.x 系统上通过 Docker 部署 Mihomo (Clash Meta) 旁路由时，**Macvlan 网络架构** 结合 **TUN 模式** 是兼顾网络性能与全协议（包含 ICMP / UDP）代理的最佳实践。
+
+然而，由于群晖 Linux 内核（5.10+）对动态创建虚拟网卡的默认安全限制，直接开启 TUN 模式经常会遇到 `Start TUN listening error: configure tun interface: permission denied` 或 `RTNETLINK answers: Permission denied` 报错。
+
+本文记录了完整的排查过程与最终的生产级配置方案，包含 IPv6 双栈动态路由与全局透明代理的完美结合。
+
+## 1. 架构与痛点解析
+
+### 核心痛点：为什么 TUN 会在群晖 DSM 下报 `Permission denied`？
+
+在 Macvlan 模式下部署容器并启动 TUN，Mihomo 初始化时会按顺序执行以下动作：
+
+1. 创建虚拟网卡（例如 `Meta` / `tun0`）。
+
+2. 向该网卡绑定 IPv4 / IPv6 地址（默认私有段为 `198.18.0.1/30` 和 `fdfe:dcba:9876::1/126`）。
+
+3. 拉起网卡并注入 `auto-route` 路由表。
+
+**根本病灶**：群晖 DSM 内核在动态创建新的网络接口时，**默认会开启 `disable_ipv6=1`**。当 Mihomo 试图为新生成的 `Meta` 网卡赋予私有 IPv6 地址时，系统内核会直接拦截并抛出 `RTNETLINK answers: Permission denied`，最终导致 Mihomo 启动崩溃。
+
+### 解决思路
+
+通过 Docker `sysctls` 与启动脚本联合解锁内核对动态接口的 IPv6 限制，同时解除 Macvlan 环境下的路由环路与 DNS 绑定端口冲突。
+
+## 2. 宿主机前期准备 (Synology DSM)
+
+必须确保群晖宿主机加载了 `tun` 内核模块并挂载了设备节点。
+
+### 1. 检查 `tun` 模块状态
+
+通过 SSH 登录群晖宿主机执行：
+
+Bash
+
+```
+ls -l /dev/net/tun
+```
+
+若提示文件不存在或未加载，手动建立节点与赋予权限：
+
+Bash
+
+```
+sudo insmod /lib/modules/tun.ko 2>/dev/null || true
+sudo mkdir -p /dev/net
+sudo mknod /dev/net/tun c 10 200 2>/dev/null || true
+sudo chmod 0666 /dev/net/tun
+```
+
+### 2. 设置群晖开机自动加载 TUN
+
+在群晖 **控制面板** -> **任务计划** 中新增一个 **触发的任务 (用户定义的脚本)**：
+
+- **用户**：`root`
+
+- **事件**：开机 (Boot-up)
+
+- **任务步骤脚本**：
+
+Bash
+
+```
+if [ ! -c /dev/net/tun ]; then
+    insmod /lib/modules/tun.ko
+    mkdir -p /dev/net
+    mknod /dev/net/tun c 10 200
+    chmod 0666 /dev/net/tun
+fi
+```
+
+## 3. 项目最终配置文件
+
+基于 Mihomo 官方 **Alpine** 镜像，无需任何自定义 Dockerfile，全部由 Compose 与启动脚本托管。
+
+### 文件结构
+
+Plaintext
+
+```
+/volume2/docker/vlan-mihomo/
+├── compose.yaml
+├── entrypoint-v6.sh
+└── config.yaml
+```
+
+### 配置一：`compose.yaml`
+
+YAML
+
+```
+services:
+  metacubexd:
+    image: docker.1ms.run/metacubex/mihomo:latest
+    container_name: vlan_metacubexd
+    restart: unless-stopped
+    environment:
+      TZ: '${TZ:-Asia/Shanghai}'
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    cpu_shares: 2048
+
+    volumes:
+      - '.:/root/.config/mihomo'
+      - './entrypoint-v6.sh:/entrypoint-v6.sh:ro'
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9090"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+    # 关键：通过 sysctls 允许容器内核为新创接口开启 IPv6 并放行路由转发
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+      - net.ipv6.conf.default.disable_ipv6=0
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
+      - net.ipv6.conf.all.accept_ra=2
+      - net.ipv6.conf.eth0.accept_ra=2
+      - net.ipv6.conf.eth0.accept_ra_pinfo=2
+      - net.ipv6.conf.eth0.accept_ra_defrtr=0
+      - net.ipv6.conf.eth0.autoconf=1
+
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
+
+    security_opt:
+      - seccomp:unconfined
+
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.0.2
+
+    privileged: true
+    entrypoint: ["/bin/sh", "/entrypoint-v6.sh"]
+
+networks:
+  macvlan_net:
+    external: true
+```
+
+### 配置二：`entrypoint-v6.sh`
+
+Bash
+
+```
+#!/bin/sh
+set -e
+
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
+
+# 1. 强制解锁内核对新建接口（如 Meta/tun0）的 IPv6 限制
+sysctl -w net.ipv6.conf.all.disable_ipv6=0 2>/dev/null || true
+sysctl -w net.ipv6.conf.default.disable_ipv6=0 2>/dev/null || true
+
+# 2. 检查并动态分配 eth0 的 IPv6 前缀地址（如未绑定则静态追加）
+DYNAMIC_ADDR=$(ip -6 addr show eth0 scope global | grep 'inet6 240' | head -n1 | awk '{print $2}')
+if [ -z "$DYNAMIC_ADDR" ]; then
+    echo "[IPv6] Adding static IPv6 address to eth0..."
+    ip -6 addr add 2409:8a28:12eb:6e10::2/64 dev eth0 2>/dev/null || true
+fi
+
+# 3. 修正并重置 IPv6 默认网关路由
+echo "[IPv6] Setting up IPv6 default route..."
+ip -6 route del default 2>/dev/null || true
+ip -6 route add default via fe80::f66d:2fff:fee6:fab5 dev eth0 2>/dev/null || true
+
+# 4. 覆写容器内部 DNS 解析，防止启动初期依赖宿主机 DNS 超时
+echo "nameserver 119.29.29.29" > /etc/resolv.conf
+echo "nameserver 223.5.5.5" >> /etc/resolv.conf
+
+# 5. 启动 Mihomo 主程序
+echo "[Mihomo] Starting Mihomo daemon..."
+exec /mihomo -d /root/.config/mihomo
+```
+
+*权限说明：创建脚本后请运行 `chmod +x entrypoint-v6.sh`。*
+
+### 配置三：`config.yaml` 核心段落
+
+YAML
+
+```
+# 指定物理出网接口，防止 Macvlan 模式下 TUN 出口流量回流造成无限环路
+interface-name: eth0
+
+external-controller: 0.0.0.0:9090
+secret: hello@world
+mixed-port: 1080
+allow-lan: true
+bind-address: '*'
+ipv6: true
+mode: rule
+log-level: error
+
+# TUN 模式核心参数
+tun:
+  enable: true
+  stack: gvisor       # 使用用户态网络栈，避开群晖内核高级参数修改限制
+  auto-route: true
+  strict-route: false # 必须为 false，防止强制修改宿主机主表
+  auto-detect-interface: false # 在 Macvlan 下必须关闭自动识别，防止错误绑定
+  inet4-address: 198.18.0.1/30
+  inet6-address: fdfe:dcba:9876::1/126
+  dns-hijack:
+    - 'any:53'
+    - 'tcp://any:53'
+
+# 内置 DNS 服务参数（为局域网提供 DNS 劫持与 Fake-IP 解析）
+dns:
+  enable: true
+  listen: 0.0.0.0:53  # 监听 53 端口，支持作为局域网主 DNS 使用
+  ipv6: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  respect-rules: false
+  use-hosts: true
+  nameserver:
+    - 119.29.29.29
+    - 223.5.5.5
+    - https://doh.pub/dns-query
+```
+
+## 4. 部署与功能验证
+
+在项目目录下执行容器一键启动：
+
+Bash
+
+```
+docker compose up -d --force-recreate
+```
+
+### 1. 验证 TUN 接口与网络状态
+
+进入容器查看网络设备：
+
+Bash
+
+```
+docker exec -it vlan_metacubexd sh -c "ip a"
+```
+
+**成功标志**：
+
+- 出现 `Meta` 虚拟接口且状态为 `UP,LOWER_UP`。
+
+- `Meta` 接口成功绑定了 IPv4 (`198.18.0.1/30`) 与 IPv6 (`fdfe:dcba:9876::1/126`)。
+
+- `eth0` 正常拿到公网 IPv6 地址 (`2409:…/64`)。
+
+### 2. 验证容器内双栈连通性与 DNS 状态
+
+Bash
+
+```
+# 验证 IPv4 连通性
+docker exec -it vlan_metacubexd ping -c 2 baidu.com
+
+# 验证 IPv6 连通性
+docker exec -it vlan_metacubexd ping6 -c 2 2a0e:97c0:3f0:1::1d1d
+```
+
+### 3. 验证局域网客户端接入
+
+在同局域网的电脑/手机上，将**网关**与 **DNS 服务器** 手动指定为 `192.168.0.2`：
+
+Bash
+
+```
+# 在客户端命令行验证 DNS 解析
+nslookup sony.com 192.168.0.2
+```
+
+此时解析应瞬间返回 Fake-IP（`198.18.x.x`）或正确 IP，全网 TCP / UDP / ICMP 流量将无感通过 Mihomo TUN 模式进行透明代理转发。
