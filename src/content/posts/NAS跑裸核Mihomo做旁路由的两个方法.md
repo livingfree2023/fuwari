@@ -11,7 +11,7 @@ published: 2026-07-29T12:53:03+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260729125303
 upload: false
-Last Modified: 2026-07-29 19:07:66
+Last Modified: 2026-07-30 08:07:48
 ---
 
 NAS 虚拟 OPENWRT 其实要配置的东西太多了，比如 ipv6 就可能劝退一批人，但是裸核跑比想象的方便多了，系统占用极低，和 Openwrt 对比，内存只要 50MB，磁盘空间也只要一个核。前提条件是配置文件需要手搓一个完美或者找一个优秀的模版，把 dns、分流规则等都写好，有这些之后就可以开始了。（不懂的问 AI）
@@ -23,14 +23,30 @@ NAS 虚拟 OPENWRT 其实要配置的东西太多了，比如 ipv6 就可能劝�
 在群晖 DSM 的 Container Manager 中添加一个 project，填入以下内容，并且把订阅或者自建的配置文件存成 `config.yaml` 放在同一个目录下
 
 ```
+# All-in-one server example for a trusted LAN. Published ports bind to every
+# host interface; do not expose them directly to the public internet. Use a
+# firewall and a TLS reverse proxy for access outside the trusted network.
+#
+# Before `docker compose up -d`, create a `.env` file containing two different,
+# strong random values:
+#   CONTROL_TOKEN=...
+#   CLASH_SECRET=...
+
 services:
-  mihomo:
-    image: docker.1ms.run/metacubex/mihomo:latest
-    container_name: mihomo
+  metacubexd:
+    image: ghcr.io/metacubex/metacubexd-server:latest
+    container_name: metacubexd
     restart: unless-stopped
-    # Host network mode (Required for TUN / Transparent Proxying)
-    network_mode: host
-    # Enhance system open file limits to prevent "too many open files" errors under heavy traffic
+    environment:
+      CONTROL_TOKEN: '${CONTROL_TOKEN:?Set CONTROL_TOKEN in .env}'
+      CLASH_SECRET: '${CLASH_SECRET:?Set CLASH_SECRET in .env}'
+      GITHUB_TOKEN: '${GITHUB_TOKEN:-}'
+      # Optional: pre-fill the connect form's backend address (#2155).
+      DEFAULT_BACKEND_URL: '${DEFAULT_BACKEND_URL:-}'
+      CONTROL_PORT: '8080'
+      CLASH_API_PORT: '9090'
+      MIXED_PORT: '1080'
+      TZ: '${TZ:-UTC}'
     ulimits:
       nofile:
         soft: 65535
@@ -38,30 +54,45 @@ services:
     # CPU priority tuning
     cpu_shares: 2048
 
-    # Environment variables
-    environment:
-      - TZ=Asia/Shanghai  # Adjust to your local timezone for correct log timestamps
-
-    # Network permissions for TUN mode
+    volumes:
+      - '.:/data'
+      
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/api/control/health']
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    #ports:
+    #  - '8080:8080' # dashboard UI + /api/control agent API
+    #  - '9090:9090' # Mihomo external-controller API + WebSocket
+    #  - '1080:1080' # mixed HTTP/SOCKS proxy port
+    #  - '1071:1071' # HTTP
+    #  - '1081:1081' # socks        
+    # TUN is an advanced Linux-only override. It grants network-administration
+    # capability and makes the container share the host network namespace.
+    # Remove `ports:` (Docker ignores it in host-network mode), uncomment the
+    # three settings below, and enable `tun:` in the active Mihomo profile.
+    network_mode: host
+    privileged: true
     cap_add:
       - NET_ADMIN
+      - NET_BIND_SERVICE
       - NET_RAW
     devices:
-      - /dev/net/tun:/dev/net/tun
-
-    # Mount entire directory to retain GeoIP data, rule-providers, and runtime cache
-    volumes:
-      - .:/root/.config/mihomo
-
-    # Prevent Synology disk space exhaustion from Docker log accumulation
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - '/dev/net/tun:/dev/net/tun'
+    
 ```
 
 > 容器配置中启用了可以使用 tun 模式，但是真正的是否开启，还是要看配置文件里面是怎么写的。也可以在浏览器面板中手动开启关闭（见最后）
+
+> tun 模式的大坑：
+> 1. 开启 tun 一定要检查 dns 是否正确劫持，docker 中 dns-hijack 无论如何也没法生效，最后通过 dns 的 listen 设成 0.0.0.0:53 直接监听 53 才成功。
+> 2. 注意 fake-ip 和 bt/pt 冲突，需要在 fake-ip-filter 中添加
+>  - tracker.+
+>   - geosite:category-stun
+>   - geosite:category-pt
+>   - PROCESS-NAME:qbittorrent-nox
 
 这个方法可以全部图形化操作，具体步骤不赘述了（不会的问 AI）
 
