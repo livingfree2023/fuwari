@@ -11,7 +11,7 @@ published: 2026-07-29T12:53:03+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260729125303
 upload: false
-Last Modified: 2026-07-31 10:07:25
+Last Modified: 2026-07-31 10:07:30
 ---
 ```table-of-contents
 ```
@@ -196,9 +196,9 @@ sudo systemctl restart mihomo
 
 ## Docker 中开启 tun
 
-![](Pasted%20image%2020260731075808.png)
+![](https://image.heavenroad.org/Pasted image 20260731075808.png)
 
-![](Pasted%20image%2020260731093943.png)
+![](https://image.heavenroad.org/Pasted image 20260731093943.png)
 
 > Docker 容器跑裸核难度随着 tun 模式和 ipv6 逐步上升，如果既要 tun 又要 ipv6 可以直接拉到文章最后面有一个折腾笔记。先说结论——
 >
@@ -467,16 +467,23 @@ docker compose up -d --force-recreate
 
 网卡混杂状态
 
-```
-先看一眼
+- 先看一眼
+```bash
 ip link show | grep -i promisc
+```
 
-如果mei
+- 如果没开，要开启
+```bash
 sudo ip link set ovs_eth0 promisc on
 sudo ip link set eth0 promisc on
-
-
 ```
+
+- 如果未来卸载时要关闭
+```bash
+sudo ip link set ovs_eth0 promisc off
+sudo ip link set eth0 promisc off
+```
+
 #### 1. 验证 TUN 接口与网络状态
 
 进入容器查看网络设备：
@@ -516,4 +523,133 @@ nslookup sony.com 192.168.0.2
 
 ### 4. 性能影响
 
-![](Pasted%20image%2020260731094936.png)
+为了清晰对比，我们假设场景如下：
+
+- **局域网客户端**：IP 为 `192.168.1.50`
+
+- **NAS（宿主机）**：IP 为 `192.168.1.100`，物理网卡为 `eth0`
+
+- **Mihomo 容器**：挂载在 `macvlan0` 虚拟网卡上，分配独立 IP `192.168.1.200`，内部开启 TUN 网卡 `utun0`
+
+- **目标网站**：`1.1.1.1`
+
+下面以一个标准的 TCP Request（客户端发送请求）和 Response（目标网站返回数据）为例，拆解 **Socks5 模式** 与 **MacVlan + TUN 模式** 的完整数据包链路与内核开销。
+
+#### 模式一：直连 Socks5 代理模式（基准路径）
+
+在 Socks5 模式下，客户端显式发起 Socks5 握手，数据包在**三层（IP）是直接发给 Mihomo 的**。
+
+##### 1. Request（请求数据包）链路
+
+1. **客户端 $\rightarrow$ NAS 物理网卡**：客户端构建 TCP 包，目标 IP 为 `192.168.1.200`（Mihomo），目标端口为 `7890`。包通过物理网卡 `eth0` 接收。
+
+2. **硬中断（Hard IRQ）$\rightarrow$ 软中断（SoftIRQ）**：网卡收到数据包，触发 CPU 硬中断；内核网口驱动处理完后抛出 `NET_RX` 软中断，Linux 协议栈解析 Ethernet / IP / TCP 头部。
+
+3. **Socket 缓冲区 $\rightarrow$ 用户态**：数据包通过 Linux 协议栈送入 Mihomo 绑定的 Listening Socket 缓冲区。
+
+4. **上下文切换（Context Switch）**：内核唤醒 Mihomo 进程。Mihomo 执行 `read()` 或 `epoll_wait()`，数据从**内核空间（Kernel Space）复制到用户空间（User Space）**。
+
+5. **用户态加密/转发**：Mihomo 解析 Socks5 协议，根据 Rule 决定走节点 Proxy，将数据通过 TLS/QUIC 等代理协议封装。
+
+6. **用户态 $\rightarrow$ 内核空间**：Mihomo 调用 `write()` 将加密后的代理数据发往远端代理节点。数据从用户空间复制回内核空间。
+
+7. **协议栈发送 $\rightarrow$ 物理网卡**：内核经过路由表判断，从 `eth0` 发出 TCP 包发往代理节点/目标服务器。
+
+##### 2. Response（响应数据包）链路
+
+1. **目标服务器 $\rightarrow$ NAS 物理网卡**：远端节点返回加密响应，`eth0` 接收。
+
+2. **硬/软中断 $\rightarrow$ Socket 缓冲区**：协议栈解包，交由 Mihomo 与代理节点建立的 TCP 连接 Socket。
+
+3. **上下文切换（用户态处理）**：Mihomo 接收数据，在用户态解密。
+
+4. **用户态 $\rightarrow$ 内核空间 $\rightarrow$ 客户端**：Mihomo 将解密后的 Raw TCP 载荷写入与客户端建立的 Socks5 Socket，内核协议栈封装 TCP/IP 报文后直接从 `eth0` 发回客户端 `192.168.1.50`。
+
+> **Socks5 路径开销总结**：
+>
+> - **内核/用户态切换**：仅 **1 次**（入站）+ **1 次**（出站）。
+> 
+> - **协议栈解析**：标准的标准 Socket 读写，Linux 内核路径短，支持 GSO/GRO（网卡硬件分包/合并），CPU 效率极高。
+>  
+
+#### 模式二：MacVlan + TUN 模式（全透明劫持路径）
+
+在 MacVlan + TUN 模式下，客户端未设置 Socks5 代理，直接把网关指向 Mihomo（`192.168.1.200`），试图访问 `1.1.1.1`。此时数据包经历了 **二层 MacVlan 软重定向 + 三层 Linux 路由劫持 + TUN 虚拟网卡拆包/重组**。
+
+![](https://image.heavenroad.org/Pasted image 20260731094936.png)
+
+##### 1. Request（请求数据包）链路：步步皆是开销
+
+###### 第一阶段：MacVlan 的二层流量打转与网卡混杂模式
+
+1. **客户端 $\rightarrow$ NAS 物理网卡**：客户端构建 TCP 包，目标 IP 为 `1.1.1.1`，但目标 MAC 地址为 Mihomo 的 MacVlan MAC (`02:42:c0:…`)。数据包到达物理网卡 `eth0`。
+
+2. **混杂模式与硬/软中断**：由于包的 MAC 不是 NAS 宿主机自身的 MAC，`eth0` 必须处于**混杂模式（Promiscuous Mode）**。网卡触发硬中断，驱动抛出 SoftIRQ。
+
+3. **MacVlan 驱动处理**：Linux 内核接收到包后，MacVlan 模块（`macvlan_handle_frame`）在二层拦截该包，匹配 MAC 后将其送入 `macvlan0` 虚拟网卡的接收队列。这一过程产生了**额外的内核网络子系统二层转发开销**。
+
+###### 第二阶段：TUN 虚拟网卡与二次内核/用户态切换
+
+4. **内核路由表与 iptables / nftables**：`macvlan0` 拿到包后，容器内网络协议栈处理 IP 层。由于开启了 `auto-route` 或 iptables 劫持，内核路由表将目标 IP `1.1.1.1` 路由到 `utun0` 网卡。
+
+5. **写入 TUN 队列**：内核协议栈把完整的 IP 数据报（包含 IP 头部、TCP 头部、Payload）写入 `utun0` 的环形缓冲区（Ring Buffer）。
+
+6. **上下文切换 (切换 1)**：Mihomo 进程阻塞在 `utun0` 的字符设备文件描述符（`/dev/net/tun`）上。内核触发唤醒，发生**上下文切换**，数据从**内核 `utun0` 缓冲区复制到用户态 Mihomo**。
+
+7. **用户态协议栈重组（lwIP / gVisor）**：
+
+    - 在 Socks5 下，内核替我们处理 TCP 握手和状态机。
+
+    - 在 TUN 模式下，收到的是**原始 IP 数据包**。Mihomo 必须在用户态运行一套内置的 TCP/IP 协议栈（如 gVisor 或 lwIP），**在用户态手动解析 TCP 序列号、ACK 确认号、窗口大小**，将其还原成标准的 TCP 字节流。这一步会产生剧烈的 CPU 运算开销。
+
+###### 第三阶段：代理封装与重新送回内核
+
+8. **代理封装**：Mihomo 将提取出的 TCP 字节流打入代理协议（如 ShadowSocks / Vless / Trojan）。
+
+9. **上下文切换 (切换 2)**：Mihomo 调用 `write()`，将加密后的代理数据通过真实 Socket 发往代理节点。数据**再次从用户空间复制回内核空间**。
+
+10. **二层再次出站**：数据经过 Linux 协议栈，从 `macvlan0` 出发，再次经过 MacVlan 驱动转发到物理网卡 `eth0` 发出。
+
+##### 2. Response（响应数据包）链路：逆向再剥一层皮
+
+远端代理节点返回数据包时的流程是 Request 的完美镜像，开销同样巨大：
+
+1. **`eth0` 接收代理响应包** $\rightarrow$ **MacVlan 驱动二层识别** $\rightarrow$ 扔给 `macvlan0`。
+
+2. **软中断（SoftIRQ）** 触发，协议栈处理，送到 Mihomo 与代理节点建立的真实 Socket 缓冲区。
+
+3. **上下文切换 (切换 3)**：Mihomo 读取数据，在用户态完成解密。
+
+4. **用户态 TCP/IP 协议栈伪造 IP 包**：Mihomo 的用户态协议栈根据刚刚的解密数据，**手动构建**一个源 IP 为 `1.1.1.1`、目标 IP 为 `192.168.1.50` 的原始 TCP/IP 包。
+
+5. **上下文切换 (切换 4)**：Mihomo 将伪造的 IP 包写入 `/dev/net/tun`（`utun0` 网卡）。
+
+6. **TUN 网卡注入内核**：内核 `utun0` 接收到这个数据包，以为是从网卡收到了数据，重新压入内核网络协议栈。
+
+7. **二层重定向与软中断**：内核路由表判断该包目标为 `192.168.1.50`，交由 `macvlan0` 发送，MacVlan 驱动通过 `eth0` 最终将数据包送回局域网客户端。
+
+#### 三、 两种模式链路对比表
+
+|**比较维度**|**Socks5 显式代理**|**MacVlan + TUN 透明代理**|**性能影响**|
+|---|---|---|---|
+|**二层 (L2) 处理**|物理网卡硬件直收直发|物理网卡开启混杂模式 + MacVlan 模块内部转发|增加中断频次，CPU 无法利用网卡 Hardware Offload|
+|**内核/用户态切换 (单向包)**|**2 次** (Read Socket / Write Socket)|**4 次** (Read Socket / Write TUN / Read TUN / Write Socket)|上下文切换（Context Switch）开销**翻倍**|
+|**数据内存拷贝 (Memory Copy)**|2 次|4 次以上 (内核 $\leftrightarrow$ TUN $\leftrightarrow$ Mihomo $\leftrightarrow$ 内核)|L3 Cache 频繁失效，内存带宽开销大|
+|**TCP/IP 协议栈处理**|纯 Linux 内核 C 语言内核栈处理|**双重处理**：Linux 内核栈处理外层，Mihomo（gVisor/lwIP）在 Go 用户态处理内层|极其消耗单核 CPU 性能，Go 语言 GC 带来额外开销|
+|**网卡硬件加速 (TSO/GRO)**|完全支持|TUN 虚拟网卡通常不支持或加速效果差，导致**小包碎片化**|产生暴风式的 `NET_RX` 软中断|
+
+#### 总结：性能为什么会从 40 万暴跌到 3.7 万？
+
+对于 NAS 常见的 CPU（如 Intel N100, J4125），单核性能本就有限。
+
+在 **MacVlan + TUN** 模式下，每一个数据包都要经历：
+
+1. **网卡混杂模式 + MacVlan 驱动** 的二层开销；
+
+2. **两次额外的 `/dev/net/tun` 内存复制与上下文切换**；
+
+3. **Go 用户态协议栈（gVisor）伪造/解析 TCP 报文** 的 CPU 密集计算；
+
+4. **网卡硬件分包（TSO/GRO）失效** 导致软中断（SoftIRQ）数量呈指数级上升。
+
+当网络吞吐量加大时，CPU 的单个核心会瞬间被 **`ksoftirqd`（软中断进程）** 和 **上下文切换** 彻底吃满。系统大量的算力不是花在“传输数据”上，而是花在了**内核与用户态之间来回搬运和重组数据包**上，最终导致极限吞吐量出现数量级的断崖式下跌。
