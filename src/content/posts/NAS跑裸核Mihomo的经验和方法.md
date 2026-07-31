@@ -11,7 +11,7 @@ published: 2026-07-29T12:53:03+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260729125303
 upload: false
-Last Modified: 2026-07-31 09:07:44
+Last Modified: 2026-07-31 09:07:25
 ---
 
 ## 家里全屋科学上网的方法
@@ -93,7 +93,7 @@ services:
     
 ```
 
-这个官方镜像是接合了 MetaCubeXD 这个控制面板和 mihomo 内核的，所以配置文件可以在面板中添加。访问面板默认是 http://容器的 IP:8080
+这个官方镜像是接合了 MetaCubeXD 这个控制面板和 mihomo 内核的，所以配置文件可以在面板中添加。访问面板默认是 http://IP:8080
 
 然后新建一个 `.env` 文件，里面填写
 
@@ -103,11 +103,13 @@ CONTROL_TOKEN=随便写点随机数
 CLASH_SECRET=替换成进面板的密码
 ```
 
-如果要开启 tun 模式，还要折腾一会儿，详见：[Docker 中开启 tun](#Docker%20中开启%20tun)
+启动后，局域网内可以用 socks://IP:1080 或 http://IP:1080 就可以翻墙了
+
+如果要开启 tun 模式，详见：[Docker 中开启 tun](#Docker%20中开启%20tun)
 
 ## NAS 裸核跑 Mihomo
 
-> 以下步骤全部需要通过 SSH 命令行，（不会的建议使用方法一）
+> 以下步骤全部需要通过 SSH 命令行 （不想折腾的也可以使用 [shellcrash](https://github.com/juewuy/ShellCrash) 脚本）
 
 ### 准备工作
 
@@ -190,9 +192,9 @@ sudo systemctl stop mihomo
 sudo systemctl restart mihomo
 ```
 
-## 图形化控制面板
+### 4. 图形化控制面板
 
-无论用哪种方法部署后，用浏览器访问 `https://metacubex.github.io/metacubexd` endpoint url 的填入 NAS 的地址加 mihomo 的端口 ，比如`http://192.168.0.100:9090`，（端口默认`9090`） 应该就可以进行查看和控制了。比部署虚拟机搞 OpenWRT 做旁路由占用资源低多了，也便于管理。缺点是没有 OpenClash 之类的客户端自动更新订阅。
+部署后，用浏览器访问 [metacubexd](https://metacubex.github.io/metacubexd) endpoint url 的填入 NAS 的地址加 mihomo 的端口 ，比如`http://192.168.0.100:9090`，（端口默认`9090`） 应该就可以进行查看和控制了。比部署虚拟机搞 OpenWRT 做旁路由占用资源低多了，也便于管理。缺点是没有 OpenClash 之类的客户端自动更新订阅。
 
 但是如果你在 DSM 的计划任务中新建一个自动更新订阅的脚本，定时执行，那就完全可以不用管了
 示例：
@@ -201,7 +203,7 @@ sudo systemctl restart mihomo
 (curl -fL -s "替换成订阅的链接"  -o /volume1/mihomo/config/config.yaml.tmp && mv /volume1/mihomo/config/config.yaml.tmp /volume1/mihomo/config/config.yaml) && echo "Successfully updated config.yaml" || echo "Failed to download config.yaml"
 ```
 
-如果是用 docker 的，可以直接重启 docker 或者用面板手动 reload（不会的问 AI）
+如果是用 docker 的，可以直接重启 docker 或者用面板手动 reload
 
 ---
 
