@@ -11,11 +11,14 @@ published: 2026-07-29T12:53:03+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260729125303
 upload: false
-Last Modified: 2026-07-31 10:07:68
+Last Modified: 2026-07-31 10:07:30
 ---
 ```table-of-contents
 ```
+
 ## 家里全屋科学上网的方法
+
+用最简单最直白最不绕弯子的一句话告诉你扎心真相：
 
 1. 有钱：
 	1. 买一台多个网口的软路由或小主机装 OpenWRT
