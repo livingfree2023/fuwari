@@ -11,7 +11,7 @@ published: 2026-07-29T12:53:03+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260729125303
 upload: false
-Last Modified: 2026-07-31 09:07:77
+Last Modified: 2026-07-31 09:07:98
 ---
 ```table-of-contents
 ```
@@ -39,23 +39,6 @@ Last Modified: 2026-07-31 09:07:77
 > 3. 特别重要：在 NAS/OpenWRT 的网卡设置中手动配置 IP，网关 IP 要填写光猫/交换机/路由器的 IP。（否则就环路了，啥都出不去）
 
 ## Docker 跑 mihomo
-
-![](Pasted%20image%2020260731075808.png)
-
-![](Pasted%20image%2020260731093943.png)
-
-
-> Docker 容器跑裸核难度随着 tun 模式和 ipv6 逐步上升，如果既要 tun 又要 ipv6 可以直接拉到文章最后面有一个折腾笔记。先说结论——
->
-> **不建议折腾 tun，ipv6 其实也可有可无**
->
-> 原因是
-> 	1. 如果在 NAS 跑 tun 模式会影响 NAS 上其他服务，特别是 fake-ip，几乎很难穷尽所有可能性的去写各种规则，能用，但是非常麻烦不稳定。
-> 	2. 如果在 MacVLan 上跑 tun，性能差很多——网卡先要开混杂模式降低整体 NAS 性能，然后数据包多转一次，用户态和内核态的切换也多一倍。
-> 	3. 最终一个普通容器不开 tun，只用 socks5 代理能跑 40 万的节点，用 MacVLan 开 tun 后就只能跑到 3.7 万。所以 MacVLan 的 Tun 模式只适合做最终的 failsafe。
-> 	4. 既然作为 failsafe 用了，是否有 ipv6 的区别就不大了，所以也是可有可无。
-
-如果这还没有劝退，那么就开始折腾：
 
 在群晖 DSM 的 Container Manager 中添加一个 project，选择新建 compose.yml 填入以下内容
 
@@ -97,14 +80,14 @@ services:
     
 ```
 
-这个官方镜像是接合了 MetaCubeXD 这个控制面板和 mihomo 内核的，所以配置文件可以在面板中添加。访问面板默认是 http://IP:8080
+这个官方镜像是接合了 MetaCubeXD 这个图形化控制面板和 mihomo 内核的，所以配置文件可以在面板中添加。访问面板默认是 http://IP:8080
 
 然后新建一个 `.env` 文件，里面填写
 
 ```
-CONTROL_TOKEN=随便写点随机数
+CONTROL_TOKEN=写点随机数
 
-CLASH_SECRET=替换成进面板的密码
+CLASH_SECRET=进面板的密码
 ```
 
 启动后，局域网内可以用 socks://IP:1080 或 http://IP:1080 就可以翻墙了
@@ -198,7 +181,7 @@ sudo systemctl restart mihomo
 
 ### 4. 图形化控制面板
 
-部署后，用浏览器访问 [metacubexd](https://metacubex.github.io/metacubexd) endpoint url 的填入 NAS 的地址加 mihomo 的端口 ，比如`http://192.168.0.100:9090`，（端口默认`9090`） 应该就可以进行查看和控制了。比部署虚拟机搞 OpenWRT 做旁路由占用资源低多了，也便于管理。缺点是没有 OpenClash 之类的客户端自动更新订阅。
+部署后，用浏览器访问 [metacubexd](https://metacubex.github.io/metacubexd) endpoint url 的填入 NAS 的地址加 mihomo 的 API 控制端口 ，比如`http://ip:9090`，（端口默认`9090`） 应该就可以进行查看和控制了。比部署虚拟机搞 OpenWRT 做旁路由占用资源低多了，也便于管理。缺点是没有 OpenClash 之类的客户端自动更新订阅。
 
 但是如果你在 DSM 的计划任务中新建一个自动更新订阅的脚本，定时执行，那就完全可以不用管了
 示例：
@@ -213,7 +196,23 @@ sudo systemctl restart mihomo
 
 ## Docker 中开启 tun
 
-如果要开启 tun，又不影响 dsm 本身的服务（比如 pt），用 macvlan 把容器换一个 IP。但是要解决 IPv6 的问题（IPv6 需要能支持光猫换前缀的情况）。解决后又会发现无论如何 tun 无法启用，折腾一整天，最后 Gemini 总结如下：
+![](Pasted%20image%2020260731075808.png)
+
+![](Pasted%20image%2020260731093943.png)
+
+> Docker 容器跑裸核难度随着 tun 模式和 ipv6 逐步上升，如果既要 tun 又要 ipv6 可以直接拉到文章最后面有一个折腾笔记。先说结论——
+>
+> **不建议折腾 tun，ipv6 其实也可有可无**
+>
+> 原因是
+> 	1. 如果在 NAS 跑 tun 模式会影响 NAS 上其他服务，特别是 fake-ip，几乎很难穷尽所有可能性的去写各种规则，能用，但是非常麻烦不稳定。
+> 	2. 如果在 MacVLan 上跑 tun，性能差很多——网卡先要开混杂模式降低整体 NAS 性能，然后数据包多转一次，用户态和内核态的切换也多一倍。
+> 	3. 最终一个普通容器不开 tun，只用 socks5 代理能跑 40 万的节点，用 MacVLan 开 tun 后就只能跑到 3.x 万。所以 MacVLan 的 Tun 模式只适合做最终的 failsafe。
+> 	4. 既然作为 failsafe 用了，是否有 ipv6 的区别就不大了，所以也是可有可无。
+
+如果这还没有劝退，那么就开始折腾：
+
+要开启 tun，又不影响 dsm 本身的服务（比如 pt），用 macvlan 把容器换一个 IP。但是要解决动态 IPv6 的问题。解决 IPv6 后又会发现无论如何 tun 无法启用，折腾一整天，最后 请 Gemini 帮我总结最终方案：
 
 在 Synology DSM 7.x 系统上通过 Docker 部署 Mihomo (Clash Meta) 旁路由时，**Macvlan 网络架构** 结合 **TUN 模式** 是兼顾网络性能与全协议（包含 ICMP / UDP）代理的最佳实践。
 
@@ -498,3 +497,9 @@ nslookup sony.com 192.168.0.2
 ```
 
 此时解析应瞬间返回 Fake-IP（`198.18.x.x`）或正确 IP，全网 TCP / UDP / ICMP 流量将无感通过 Mihomo TUN 模式进行透明代理转发。
+
+
+### 4. 性能影响
+
+![](Pasted%20image%2020260731094936.png)
+
