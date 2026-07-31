@@ -11,7 +11,7 @@ published: 2026-07-29T12:53:03+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260729125303
 upload: false
-Last Modified: 2026-07-31 09:07:35
+Last Modified: 2026-07-31 10:07:25
 ---
 ```table-of-contents
 ```
@@ -447,21 +447,41 @@ dns:
 
 #### 4. 部署与功能验证
 
+创建 macvlan
+
+```bash
+sudo docker network create -d macvlan \
+  --subnet=192.168.0.0/24 \
+  --gateway=192.168.0.1 \
+  --ipv6 \
+  --subnet=fe80::/64 \
+  -o parent=ovs_eth0 \
+  macvlan_net
+```
+
 在项目目录下执行容器一键启动：
 
-Bash
-
-```
+```Bash
 docker compose up -d --force-recreate
 ```
 
+网卡混杂状态
+
+```
+先看一眼
+ip link show | grep -i promisc
+
+如果mei
+sudo ip link set ovs_eth0 promisc on
+sudo ip link set eth0 promisc on
+
+
+```
 #### 1. 验证 TUN 接口与网络状态
 
 进入容器查看网络设备：
 
-Bash
-
-```
+```Bash
 docker exec -it vlan_metacubexd sh -c "ip a"
 ```
 
@@ -475,9 +495,7 @@ docker exec -it vlan_metacubexd sh -c "ip a"
 
 #### 2. 验证容器内双栈连通性与 DNS 状态
 
-Bash
-
-```
+```Bash
 # 验证 IPv4 连通性
 docker exec -it vlan_metacubexd ping -c 2 baidu.com
 
@@ -489,17 +507,13 @@ docker exec -it vlan_metacubexd ping6 -c 2 2a0e:97c0:3f0:1::1d1d
 
 在同局域网的电脑/手机上，将**网关**与 **DNS 服务器** 手动指定为 `192.168.0.2`：
 
-Bash
-
-```
+```Bash
 # 在客户端命令行验证 DNS 解析
 nslookup sony.com 192.168.0.2
 ```
 
 此时解析应瞬间返回 Fake-IP（`198.18.x.x`）或正确 IP，全网 TCP / UDP / ICMP 流量将无感通过 Mihomo TUN 模式进行透明代理转发。
 
-
 ### 4. 性能影响
 
 ![](Pasted%20image%2020260731094936.png)
-
