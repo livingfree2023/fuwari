@@ -11,7 +11,7 @@ published: 2026-07-29T12:53:03+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260729125303
 upload: false
-Last Modified: 2026-07-31 10:07:23
+Last Modified: 2026-07-31 10:07:51
 ---
 ```table-of-contents
 ```
@@ -33,7 +33,6 @@ Last Modified: 2026-07-31 10:07:23
 3. 穷鬼没 NAS
 	1. 在某台电脑上装任意客户端或者裸核，配置中并允许局域网，而且这台电脑要固定 IP
 
-
 假设穷人有 NAS，那么**虚拟 OpenWRT 做旁路由**还是最经济最简单的选择，因为本质上是消耗大量内存（1-2G）和硬盘（1-2G）方案获得易用性的轻奢穷人，虽然一切都可以图形化配置，但是多了个虚拟机、OpenWRT、OpenClash 等 Luci 程序，尤其是旁路由 **IPv6** 就可能劝退一批人。
 
 后来发现裸核跑比想象的方便多了，系统占用极低，和 OpenWRT 对比，内存只要 50MB，磁盘空间也只要一个核（~40MB
@@ -45,7 +44,7 @@ Last Modified: 2026-07-31 10:07:23
 > 	1. 如果 NAS 上直接跑裸核或者在容器里直接跑裸核，那就填 NAS 的 IP
 > 	2. 如果用了 MacVLan 给容器指定了别的 IP，那就填 mihomo 所在容器的 IP）
 > 3. 特别重要：在 NAS/OpenWRT 的网卡设置中手动配置 IP，网关 IP 要填写光猫/交换机/路由器的 IP。（否则就环路了，啥都出不去）
-> 4. 一分价钱一分货的真理永远存在
+> 4. 一分价钱一分货的真理永远存在，金钱和性（幸）能（福）是成正比的
 
 ## Docker 跑 Mihomo
 
