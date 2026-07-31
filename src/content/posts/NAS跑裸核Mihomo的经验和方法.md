@@ -11,7 +11,7 @@ published: 2026-07-29T12:53:03+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260729125303
 upload: false
-Last Modified: 2026-07-31 09:07:43
+Last Modified: 2026-07-31 09:07:44
 ---
 
 ## 家里全屋科学上网的方法
@@ -53,7 +53,7 @@ Last Modified: 2026-07-31 09:07:43
 
 如果这还没有劝退，那么就开始折腾：
 
-在群晖 DSM 的 Container Manager 中添加一个 project，填入以下内容
+在群晖 DSM 的 Container Manager 中添加一个 project，选择新建 compose.yml 填入以下内容
 
 ```
 services:
@@ -67,9 +67,9 @@ services:
       GITHUB_TOKEN: '${GITHUB_TOKEN:-}'
       # Optional: pre-fill the connect form's backend address (#2155).
       DEFAULT_BACKEND_URL: '${DEFAULT_BACKEND_URL:-}'
-      CONTROL_PORT: '8080'
-      CLASH_API_PORT: '9090'
-      MIXED_PORT: '1080'
+      CONTROL_PORT: '8080' #面板端口
+      CLASH_API_PORT: '9090' #控制端口
+      MIXED_PORT: '1080' #代理端口
       TZ: '${TZ:-UTC}'
     ulimits:
       nofile:
@@ -93,16 +93,17 @@ services:
     
 ```
 
-把订阅或者自建的配置文件存成 `config.yaml` 放在同一个目录下，然后新建一个`.env`文件，里面填写
+这个官方镜像是接合了 MetaCubeXD 这个控制面板和 mihomo 内核的，所以配置文件可以在面板中添加。访问面板默认是 http://容器的 IP:8080
+
+然后新建一个 `.env` 文件，里面填写
 
 ```
-CONTROL_TOKEN=...
+CONTROL_TOKEN=随便写点随机数
 
-CLASH_SECRET=...
+CLASH_SECRET=替换成进面板的密码
 ```
 
-如果要开启tun模式，还要折腾一会儿，详见：[Docker 中开启 tun](#Docker%20中开启%20tun)
-
+如果要开启 tun 模式，还要折腾一会儿，详见：[Docker 中开启 tun](#Docker%20中开启%20tun)
 
 ## NAS 裸核跑 Mihomo
 
