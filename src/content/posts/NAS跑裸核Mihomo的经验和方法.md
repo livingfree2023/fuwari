@@ -11,9 +11,10 @@ published: 2026-07-29T12:53:03+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260729125303
 upload: false
-Last Modified: 2026-07-31 09:07:25
+Last Modified: 2026-07-31 09:07:77
 ---
-
+```table-of-contents
+```
 ## 家里全屋科学上网的方法
 
 1. 有钱：
@@ -41,9 +42,12 @@ Last Modified: 2026-07-31 09:07:25
 
 ![](Pasted%20image%2020260731075808.png)
 
-> Docker 容器跑裸核分 tun 和非 tun 模式，又分是否支持 ipv6 的情况，如果既要 tun 又要 ipv6 可以直接拉到文章最后面有一个折腾笔记。先说结论——
+![](Pasted%20image%2020260731093943.png)
+
+
+> Docker 容器跑裸核难度随着 tun 模式和 ipv6 逐步上升，如果既要 tun 又要 ipv6 可以直接拉到文章最后面有一个折腾笔记。先说结论——
 >
-> **不建议折腾 tun，ipv6 可有可无**
+> **不建议折腾 tun，ipv6 其实也可有可无**
 >
 > 原因是
 > 	1. 如果在 NAS 跑 tun 模式会影响 NAS 上其他服务，特别是 fake-ip，几乎很难穷尽所有可能性的去写各种规则，能用，但是非常麻烦不稳定。
@@ -217,9 +221,9 @@ sudo systemctl restart mihomo
 
 本文记录了完整的排查过程与最终的生产级配置方案，包含 IPv6 双栈动态路由与全局透明代理的完美结合。
 
-## 1. 架构与痛点解析
+### 1. 架构与痛点解析
 
-### 核心痛点：为什么 TUN 会在群晖 DSM 下报 `Permission denied`？
+#### 核心痛点：为什么 TUN 会在群晖 DSM 下报 `Permission denied`？
 
 在 Macvlan 模式下部署容器并启动 TUN，Mihomo 初始化时会按顺序执行以下动作：
 
@@ -231,15 +235,15 @@ sudo systemctl restart mihomo
 
 **根本病灶**：群晖 DSM 内核在动态创建新的网络接口时，**默认会开启 `disable_ipv6=1`**。当 Mihomo 试图为新生成的 `Meta` 网卡赋予私有 IPv6 地址时，系统内核会直接拦截并抛出 `RTNETLINK answers: Permission denied`，最终导致 Mihomo 启动崩溃。
 
-### 解决思路
+#### 解决思路
 
 通过 Docker `sysctls` 与启动脚本联合解锁内核对动态接口的 IPv6 限制，同时解除 Macvlan 环境下的路由环路与 DNS 绑定端口冲突。
 
-## 2. 宿主机前期准备 (Synology DSM)
+### 2. 宿主机前期准备 (Synology DSM)
 
 必须确保群晖宿主机加载了 `tun` 内核模块并挂载了设备节点。
 
-### 1. 检查 `tun` 模块状态
+#### 1. 检查 `tun` 模块状态
 
 通过 SSH 登录群晖宿主机执行：
 
@@ -260,7 +264,7 @@ sudo mknod /dev/net/tun c 10 200 2>/dev/null || true
 sudo chmod 0666 /dev/net/tun
 ```
 
-### 2. 设置群晖开机自动加载 TUN
+#### 2. 设置群晖开机自动加载 TUN
 
 在群晖 **控制面板** -> **任务计划** 中新增一个 **触发的任务 (用户定义的脚本)**：
 
@@ -281,11 +285,11 @@ if [ ! -c /dev/net/tun ]; then
 fi
 ```
 
-## 3. 项目最终配置文件
+### 3. 项目最终配置文件
 
 基于 Mihomo 官方 **Alpine** 镜像，无需任何自定义 Dockerfile，全部由 Compose 与启动脚本托管。
 
-### 文件结构
+#### 文件结构
 
 Plaintext
 
@@ -296,7 +300,7 @@ Plaintext
 └── config.yaml
 ```
 
-### 配置一：`compose.yaml`
+#### 配置一：`compose.yaml`
 
 YAML
 
@@ -360,7 +364,7 @@ networks:
     external: true
 ```
 
-### 配置二：`entrypoint-v6.sh`
+#### 配置二：`entrypoint-v6.sh`
 
 Bash
 
@@ -397,7 +401,7 @@ exec /mihomo -d /root/.config/mihomo
 
 *权限说明：创建脚本后请运行 `chmod +x entrypoint-v6.sh`。*
 
-### 配置三：`config.yaml` 核心段落
+#### 配置三：`config.yaml` 核心段落
 
 YAML
 
@@ -442,7 +446,7 @@ dns:
     - https://doh.pub/dns-query
 ```
 
-## 4. 部署与功能验证
+#### 4. 部署与功能验证
 
 在项目目录下执行容器一键启动：
 
@@ -452,7 +456,7 @@ Bash
 docker compose up -d --force-recreate
 ```
 
-### 1. 验证 TUN 接口与网络状态
+#### 1. 验证 TUN 接口与网络状态
 
 进入容器查看网络设备：
 
@@ -470,7 +474,7 @@ docker exec -it vlan_metacubexd sh -c "ip a"
 
 - `eth0` 正常拿到公网 IPv6 地址 (`2409:…/64`)。
 
-### 2. 验证容器内双栈连通性与 DNS 状态
+#### 2. 验证容器内双栈连通性与 DNS 状态
 
 Bash
 
@@ -482,7 +486,7 @@ docker exec -it vlan_metacubexd ping -c 2 baidu.com
 docker exec -it vlan_metacubexd ping6 -c 2 2a0e:97c0:3f0:1::1d1d
 ```
 
-### 3. 验证局域网客户端接入
+#### 3. 验证局域网客户端接入
 
 在同局域网的电脑/手机上，将**网关**与 **DNS 服务器** 手动指定为 `192.168.0.2`：
 
