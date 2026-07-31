@@ -11,10 +11,10 @@ published: 2026-07-29T12:53:03+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260729125303
 upload: false
-Last Modified: 2026-07-31 08:07:57
+Last Modified: 2026-07-31 09:07:52
 ---
 
-家里全屋科学上网的方法：
+#家里全屋科学上网的方法：
 1. 有钱：
 	1. 买一台多个网口的软路由或小主机装 OpenWRT
 	2. 可以做主路由（2 个网扣接在路由器上游 WAN 口和光猫之间负责拨号）
@@ -46,9 +46,11 @@ Last Modified: 2026-07-31 08:07:57
 >
 > 原因是
 > 	1. 如果在 NAS 跑 tun 模式会影响 NAS 上其他服务，特别是 fake-ip，几乎很难穷尽所有可能性的去写各种规则，能用，但是非常麻烦不稳定。
-> 	2. 如果在 MacVLan 上跑 tun，性能差很多（网卡先要开混杂模式，数据包先到 NAS后内核转给Docker，Docker要转发到容器的内核再到 Mihomo，），发给用户的包出来时还要在 NAS 上再转发一次，所有数据报都要额外增加 2 次转发。
-> 
-> 最终一个普通容器不开 tun，只用 socks5 代理能跑 40 万的节点，用 MacVLan 开 tun 后就只能跑到 3.7 万。所以 MacVLan 的 Tun 模式只适合做最终的 failsafe。
+> 	2. 如果在 MacVLan 上跑 tun，性能差很多——网卡先要开混杂模式降低整体 NAS 性能，然后数据包多转一次，用户态和内核态的切换也多一倍。
+> 	3. 最终一个普通容器不开 tun，只用 socks5 代理能跑 40 万的节点，用 MacVLan 开 tun 后就只能跑到 3.7 万。所以 MacVLan 的 Tun 模式只适合做最终的 failsafe。
+> 	4. 既然作为 failsafe 用了，是否有 ipv6 的区别就不大了，所以也是可有可无。
+
+如果这还没有劝退，那么就开始折腾：
 
 在群晖 DSM 的 Container Manager 中添加一个 project，填入以下内容，并且把订阅或者自建的配置文件存成 `config.yaml` 放在同一个目录下
 
