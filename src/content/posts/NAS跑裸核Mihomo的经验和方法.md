@@ -1,6 +1,6 @@
 ---
-title: NAS跑裸核Mihomo做旁路由的两个方法
-category: Blog
+title: NAS跑裸核Mihomo的经验和方法
+category: 技术
 tags:
   - Docker
   - Clash
@@ -11,10 +11,19 @@ published: 2026-07-29T12:53:03+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260729125303
 upload: false
-Last Modified: 2026-07-31 08:07:58
+Last Modified: 2026-07-31 08:07:63
 ---
 
-NAS 虚拟 OPENWRT 其实要配置的东西太多了，比如 ipv6 就可能劝退一批人，但是裸核跑比想象的方便多了，系统占用极低，和 Openwrt 对比，内存只要 50MB，磁盘空间也只要一个核。前提条件是配置文件需要手搓一个完美或者找一个优秀的模版，把 dns、分流规则等都写好，有这些之后就可以开始这段快乐的折腾旅程。
+家里全屋科学上网的方法：
+1. 有钱：
+	1. 买一台软路由装OpenWRT
+	2. 可以做主路由（接在路由器上游WAN口）、也可以做旁路由（接在路由器下游LAN口）。
+	3. 最省心，最稳定。
+2. 没钱：
+	1. 有NAS：虚拟 OpenWRT 
+	2. 没NAS：在某台电脑上装客户端并允许局域网链接
+
+NAS 虚拟 OPENWRT 做旁路由还是最经济的选择，只是要配置的东西太多了，比如 ipv6 就可能劝退一批人，但是裸核跑比想象的方便多了，系统占用极低，和 Openwrt 对比，内存只要 50MB，磁盘空间也只要一个核。前提条件是配置文件需要手搓一个完美或者找一个优秀的模版，把 dns、分流规则等都写好，有这些之后就可以开始这段快乐的折腾旅程。
 
 > 旁路由开启 tun 后可以做到全屋自动生效，手机平板电脑 TV 等等设备都不需要装梯子翻墙。简单的说操作方法就是：
 > 1. 装好旁路由
@@ -27,11 +36,11 @@ NAS 虚拟 OPENWRT 其实要配置的东西太多了，比如 ipv6 就可能劝�
 
 ![](Pasted%20image%2020260731075808.png)
 
-> Docker容器跑裸核分tun和非tun模式，又分是否支持ipv6的情况，如果既要tun又要ipv6可以直接拉到文章最后面有一个折腾笔记。先说结论——
-> 
-> 	**不建议折腾tun，ipv6可有可无**
-> 
-> 原因是如果在NAS跑tun模式会影响NAS上其他服务，特别是fake-ip，几乎很难穷尽所有可能性的去写各种规则，能用，但是非常麻烦不稳定。而如果在MacVLan上跑tun，性能差很多（回城数据包先到NAS转发到Mihomo，Mihomo发给电脑手机的包出来时还要再NAS上再转发一次，所有数据报都要额外增加2次NAS上的转发。最终一个普通容器不开tun，只用socks5代理能跑40万的节点，用MacVLan开tun后就只能跑到3.7万。所以MacVLan的Tun模式只适合做最终的failsafe。
+> Docker 容器跑裸核分 tun 和非 tun 模式，又分是否支持 ipv6 的情况，如果既要 tun 又要 ipv6 可以直接拉到文章最后面有一个折腾笔记。先说结论——
+>
+> **不建议折腾 tun，ipv6 可有可无**
+>
+> 原因是如果在 NAS 跑 tun 模式会影响 NAS 上其他服务，特别是 fake-ip，几乎很难穷尽所有可能性的去写各种规则，能用，但是非常麻烦不稳定。而如果在 MacVLan 上跑 tun，性能差很多（回城数据包先到 NAS 转发到 Mihomo，Mihomo 发给电脑手机的包出来时还要再 NAS 上再转发一次，所有数据报都要额外增加 2 次 NAS 上的转发。最终一个普通容器不开 tun，只用 socks5 代理能跑 40 万的节点，用 MacVLan 开 tun 后就只能跑到 3.7 万。所以 MacVLan 的 Tun 模式只适合做最终的 failsafe。
 
 在群晖 DSM 的 Container Manager 中添加一个 project，填入以下内容，并且把订阅或者自建的配置文件存成 `config.yaml` 放在同一个目录下
 
