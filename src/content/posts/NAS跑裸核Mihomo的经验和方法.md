@@ -11,21 +11,22 @@ published: 2026-07-29T12:53:03+08:00
 image: https://image.heavenroad.org/default_cover.webp
 slug: slug20260729125303
 upload: false
-Last Modified: 2026-07-31 09:07:52
+Last Modified: 2026-07-31 09:07:43
 ---
 
-#家里全屋科学上网的方法：
+## 家里全屋科学上网的方法
+
 1. 有钱：
 	1. 买一台多个网口的软路由或小主机装 OpenWRT
 	2. 可以做主路由（2 个网扣接在路由器上游 WAN 口和光猫之间负责拨号）
 	3. 也可以做旁路由（1 个网扣接在路由器下游 LAN 口）。
-	4. 最省心，最稳定。
+	4. 系统往往可以让老板帮你装好，最省心，最稳定。
 2. 没钱：
 	1. 有 NAS：
 		1. 虚拟机跑 OpenWRT 里面再跑 openclash
 		2. [Docker 跑 mihomo](#Docker%20跑%20mihomo)
 		3. [NAS 裸核跑 Mihomo](#NAS%20裸核跑%20Mihomo)
-		4. 没 NAS：在某台电脑上装任意客户端或者裸核，配置中并允许局域网，而且这台电脑要固定 IP
+	2. 没 NAS：在某台电脑上装任意客户端或者裸核，配置中并允许局域网，而且这台电脑要固定 IP
 
 家里有 NAS，没必要自己再买硬件。虚拟 OPENWRT 做旁路由还是最经济的选择，只是要配置的东西太多了，比如 ipv6 就可能劝退一批人。后来发现裸核跑比想象的方便多了，系统占用极低，和 Openwrt 对比，内存只要 50MB，磁盘空间也只要一个核。前提条件是配置文件需要找一个优秀的模版把 分流规则自动选择或者故障转移等都写好，能够做到常年不用管。
 
@@ -52,18 +53,9 @@ Last Modified: 2026-07-31 09:07:52
 
 如果这还没有劝退，那么就开始折腾：
 
-在群晖 DSM 的 Container Manager 中添加一个 project，填入以下内容，并且把订阅或者自建的配置文件存成 `config.yaml` 放在同一个目录下
+在群晖 DSM 的 Container Manager 中添加一个 project，填入以下内容
 
 ```
-# All-in-one server example for a trusted LAN. Published ports bind to every
-# host interface; do not expose them directly to the public internet. Use a
-# firewall and a TLS reverse proxy for access outside the trusted network.
-#
-# Before `docker compose up -d`, create a `.env` file containing two different,
-# strong random values:
-#   CONTROL_TOKEN=...
-#   CLASH_SECRET=...
-
 services:
   metacubexd:
     image: ghcr.io/metacubex/metacubexd-server:latest
@@ -95,38 +87,22 @@ services:
       timeout: 5s
       start_period: 10s
       retries: 3
-    #ports:
-    #  - '8080:8080' # dashboard UI + /api/control agent API
-    #  - '9090:9090' # Mihomo external-controller API + WebSocket
-    #  - '1080:1080' # mixed HTTP/SOCKS proxy port
-    #  - '1071:1071' # HTTP
-    #  - '1081:1081' # socks        
-    # TUN is an advanced Linux-only override. It grants network-administration
-    # capability and makes the container share the host network namespace.
-    # Remove `ports:` (Docker ignores it in host-network mode), uncomment the
-    # three settings below, and enable `tun:` in the active Mihomo profile.
+
     network_mode: host
     privileged: true
-    cap_add:
-      - NET_ADMIN
-      - NET_BIND_SERVICE
-      - NET_RAW
-    devices:
-      - '/dev/net/tun:/dev/net/tun'
     
 ```
 
-> 容器配置中启用了可以使用 tun 模式，但是真正的是否开启，还是要看配置文件里面是怎么写的。也可以在浏览器面板中手动开启关闭（见最后）
+把订阅或者自建的配置文件存成 `config.yaml` 放在同一个目录下，然后新建一个`.env`文件，里面填写
 
-> tun 模式的大坑：
-> 1. 开启 tun 一定要检查 dns 是否正确劫持，docker 中 dns-hijack 无论如何也没法生效，最后通过 dns 的 listen 设成 0.0.0.0:53 直接监听 53 才成功。
-> 2. 注意 fake-ip 和 bt/pt 冲突，需要在 fake-ip-filter 中添加
->  - tracker.+
->   - geosite:category-stun
->   - geosite:category-pt
->   - PROCESS-NAME:qbittorrent-nox
+```
+CONTROL_TOKEN=...
 
-这个方法可以全部图形化操作，具体步骤不赘述了（不会的问 AI）
+CLASH_SECRET=...
+```
+
+如果要开启tun模式，还要折腾一会儿，详见：[Docker 中开启 tun](#Docker%20中开启%20tun)
+
 
 ## NAS 裸核跑 Mihomo
 
@@ -228,7 +204,8 @@ sudo systemctl restart mihomo
 
 ---
 
-## 更新：
+## Docker 中开启 tun
+
 如果要开启 tun，又不影响 dsm 本身的服务（比如 pt），用 macvlan 把容器换一个 IP。但是要解决 IPv6 的问题（IPv6 需要能支持光猫换前缀的情况）。解决后又会发现无论如何 tun 无法启用，折腾一整天，最后 Gemini 总结如下：
 
 在 Synology DSM 7.x 系统上通过 Docker 部署 Mihomo (Clash Meta) 旁路由时，**Macvlan 网络架构** 结合 **TUN 模式** 是兼顾网络性能与全协议（包含 ICMP / UDP）代理的最佳实践。
@@ -426,7 +403,7 @@ YAML
 interface-name: eth0
 
 external-controller: 0.0.0.0:9090
-secret: hello@world
+secret: password
 mixed-port: 1080
 allow-lan: true
 bind-address: '*'
